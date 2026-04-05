@@ -2,6 +2,8 @@
 
 Minimal training repo for math-focused distillation experiments built on top of `verl`.
 
+Disclaimer: OPSD and EOPD in this repository are developed based on our own understanding of the algorithms. The implementations are subject to change as our understanding and the codebase evolve.
+
 This repository currently contains:
 
 - `scripts/` for launching training, evaluation, and checkpoint conversion
