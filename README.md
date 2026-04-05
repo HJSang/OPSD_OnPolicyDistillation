@@ -1,4 +1,4 @@
-# OPSD On-Policy Distillation
+# Memory Efficient OPSD On-Policy Distillation Training
 
 Minimal training repo for math-focused distillation experiments built on top of `verl`.
 
