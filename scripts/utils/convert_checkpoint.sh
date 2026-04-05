@@ -11,7 +11,7 @@ if [ ! -d "$CHECKPOINT_PATH" ]; then
 fi
 
 # The checkpoint path should point to the actor dir, e.g.:
-#   /shared/public/sharing/RLPilot/<exp>/global_step_54/actor
+#   <output-root>/<exp>/global_step_54/actor
 # If user passes the global_step dir, append /actor
 if [ -d "$CHECKPOINT_PATH/actor" ]; then
     LOCAL_DIR="$CHECKPOINT_PATH/actor"

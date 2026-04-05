@@ -168,9 +168,3 @@ Additional method-specific variables:
 - OPSD: `TEACHER_MODEL_PATH`, `OPSD_LOSS_TYPE`, `OPSD_CHUNK_SIZE`, `OPSD_MAX_LENGTH`, `OPSD_REWARD_BETA`, `ENABLE_THINKING`
 - EOPD: `TEACHER_MODEL_PATH`, `EOPD_CLIP_EPSILON`, `EOPD_ENTROPY_THRESHOLD`, `EOPD_TOPK`, `EOPD_N_PPO_EPOCHS`, `EOPD_CHUNK_SIZE`, `EOPD_MAX_LENGTH`
 - Eval: `INSTRUCTION_VARIANT`, `REWARD_FUNCTION`, `VAL_TEMPERATURE`, `VAL_TOP_P`, `VAL_TOP_K`, `VAL_N`
-
-## Notes
-
-- The scripts use repo-relative path discovery; they do not rely on the old `/home/jobuser/resources/workspace` layout.
-- Training outputs are currently written to `/shared/public/sharing/RLPilot/...` inside the shell scripts.
-- Console logging is enabled; MLflow setup was removed from the scripts.

@@ -121,7 +121,8 @@ if [ -n "$TEACHER_MODEL_PATH" ]; then
 fi
 EXP_NAME=${MODEL_NAME_SAFE}-${RUN_ID}-OPSD-${opsd_loss_type}${REWARD_TAG}${TEACHER_TAG}-${THINK_TAG}-lr${learning_rate}-bs${train_batch_size}-n${rollout_n}
 
-output_dir="/shared/public/sharing/RLPilot/${EXP_NAME}"
+OUTPUT_ROOT=${OUTPUT_ROOT:-"${REPO_ROOT}/outputs"}
+output_dir="${OUTPUT_ROOT}/${EXP_NAME}"
 mkdir -p "$output_dir"
 
 # Background GPU memory monitor — survives Python OOM kills

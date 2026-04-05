@@ -105,7 +105,8 @@ MODEL_NAME_SAFE=$(echo "$MODEL_NAME" | tr '/' '_')
 RUN_ID=${FLYTE_INTERNAL_EXECUTION_ID:-local}
 EXP_NAME=${MODEL_NAME_SAFE}-${RUN_ID}-GRPO-lr${learning_rate}-bs${train_batch_size}-n${rollout_n}
 
-output_dir="/shared/public/sharing/RLPilot/${EXP_NAME}"
+OUTPUT_ROOT=${OUTPUT_ROOT:-"${REPO_ROOT}/outputs"}
+output_dir="${OUTPUT_ROOT}/${EXP_NAME}"
 mkdir -p "$output_dir"
 
 echo "=== GRPO Training Configuration ==="

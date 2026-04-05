@@ -104,7 +104,8 @@ MODEL_NAME_SAFE=$(echo "$MODEL_NAME" | tr '/' '_')
 RUN_ID=${FLYTE_INTERNAL_EXECUTION_ID:-local}
 EXP_NAME=${MODEL_NAME_SAFE}-eval-${INSTRUCTION_VARIANT}-${REWARD_FUNCTION}-${RUN_ID}
 
-output_dir="/shared/public/sharing/RLPilot/eval/${EXP_NAME}"
+OUTPUT_ROOT=${OUTPUT_ROOT:-"${REPO_ROOT}/outputs/eval"}
+output_dir="${OUTPUT_ROOT}/${EXP_NAME}"
 mkdir -p "$output_dir"
 
 echo "=== Math Evaluation Configuration ==="
