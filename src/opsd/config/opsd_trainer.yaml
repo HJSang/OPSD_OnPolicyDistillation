@@ -1,0 +1,180 @@
+# OPSD (On-Policy Self-Distillation) Trainer config
+#
+# Same model serves as both teacher p_T(·|x, y*) and student p_S(·|x).
+# Teacher is conditioned on question + ground truth answer from training data.
+# Student generates on-policy rollouts from question-only prompts.
+# Training minimizes token-wise divergence D(p_T || p_S) along student rollout.
+#
+# Usage:
+#   python -m opsd.main_opsd \
+#     --config-path ./config --config-name opsd_trainer \
+#     actor_rollout_ref.model.path=/path/to/model \
+#     data.train_files=/path/to/train.parquet \
+#     data.val_files="['/path/to/val1.parquet','/path/to/val2.parquet']"
+
+hydra:
+  searchpath:
+    - pkg://verl.trainer.config
+
+defaults:
+  - actor@actor_rollout_ref.actor: dp_actor
+  - data@data: legacy_data
+  - ref@actor_rollout_ref.ref: dp_ref
+  - rollout@actor_rollout_ref.rollout: rollout
+  - model@actor_rollout_ref.model: hf_model
+  - critic@critic: dp_critic
+  - legacy_reward_impl
+  - reward@reward: reward
+  - _self_
+
+data:
+  return_raw_chat: true
+
+# ---------- Actor + Rollout + Ref ----------
+actor_rollout_ref:
+  hybrid_engine: true
+  nccl_timeout: 600
+
+  rollout:
+    name: sglang
+    mode: async
+    free_cache_engine: false
+    temperature: 1.0
+    top_p: 1.0
+    n: 8
+
+    val_kwargs:
+      n: 1
+      do_sample: true
+      temperature: 0.7
+      top_p: 0.8
+      top_k: 20
+
+  ref:
+    # Optional: set model.path to a bigger model for teacher model mode.
+    # When ref.model.path differs from the actor model path, the teacher
+    # is the bigger model and no ground truth context is injected.
+    # When unset or same as actor, uses teacher context mode (OPSD paper).
+    fsdp_config:
+      param_offload: true
+
+# ---------- Algorithm (required for schema) ----------
+algorithm:
+  _target_: verl.trainer.config.AlgoConfig
+  gamma: 1.0
+  lam: 1.0
+  adv_estimator: grpo
+  norm_adv_by_std_in_grpo: true
+  use_kl_in_reward: false
+  kl_penalty: kl
+  kl_ctrl:
+    _target_: verl.trainer.config.KLControlConfig
+    type: fixed
+    kl_coef: 0.001
+    horizon: 10000
+    target_kl: 0.1
+  use_pf_ppo: false
+  pf_ppo:
+    reweight_method: pow
+    weight_pow: 2.0
+
+# ---------- OPSD specific ----------
+opsd:
+  # Divergence type: "reverse_kl" | "forward_kl" | "jsd"
+  #   reverse_kl: KL(p_student || p_teacher) — mode-seeking, student focuses on teacher peaks
+  #   forward_kl: KL(p_teacher || p_student) — mean-seeking, student covers teacher modes
+  #   jsd: JSD_beta(p_teacher || p_student) — balanced interpolation
+  loss_type: reverse_kl
+
+  # JSD interpolation parameter (only used when loss_type=jsd)
+  # beta=0.5 gives symmetric JSD
+  beta: 0.5
+
+  # Chunk size for memory-efficient divergence computation
+  # Smaller = less peak memory, larger = slightly faster
+  chunk_size: 512
+
+  # Max sequence length for OPSD training (prompt + response)
+  max_length: 16384
+
+  # Optional system prompt for teacher. If null, ground truth is appended to user message.
+  teacher_system_prompt: null
+
+  # Reward-weighted distillation: weight each sample's KL loss by softmax(reward / reward_beta).
+  # null or 0 = disabled (uniform weighting, standard OPSD).
+  # Small values (e.g. 0.1) = hard filtering (only correct samples).
+  # Large values (e.g. 10.0) = near-uniform (approaches standard OPSD).
+  # Requires rollout_n > 1 for meaningful differentiation.
+  reward_beta: null
+
+# ---------- Reward (validation only, no RM) ----------
+reward:
+  reward_model:
+    enable: false
+
+# ---------- Trainer ----------
+trainer:
+  balance_batch: false
+  total_epochs: 15
+  total_training_steps: null
+  project_name: opsd
+  experiment_name: opsd_training
+  logger: ["console", "mlflow"]
+  log_val_generations: 10
+  nnodes: 1
+  n_gpus_per_node: 8
+  save_freq: 20
+  test_freq: 5
+  esi_redundant_time: 0
+  resume_mode: disable
+  resume_from_path: null
+  val_before_train: true
+  val_only: false
+  critic_warmup: 0
+  default_hdfs_dir: null
+  del_local_ckpt_after_load: false
+  default_local_dir: checkpoints/${trainer.project_name}/${trainer.experiment_name}
+  max_actor_ckpt_to_keep: null
+  max_critic_ckpt_to_keep: null
+  ray_wait_register_center_timeout: 300
+  device: cuda
+  use_legacy_worker_impl: auto
+
+# ---------- Profiler ----------
+global_profiler:
+  _target_: verl.utils.profiler.ProfilerConfig
+  tool: null
+  steps: null
+  profile_continuous_steps: false
+  save_path: "outputs/profile"
+  global_tool_config:
+    nsys:
+      _target_: verl.utils.profiler.config.NsightToolConfig
+      discrete: false
+      controller_nsight_options:
+        trace: "cuda,nvtx,cublas,ucx"
+        cuda-memory-usage: "true"
+        cuda-graph-trace: "graph"
+      worker_nsight_options:
+        trace: "cuda,nvtx,cublas,ucx"
+        cuda-memory-usage: "true"
+        cuda-graph-trace: "graph"
+        capture-range: "cudaProfilerApi"
+        capture-range-end: null
+        kill: none
+    torch_memory:
+      trace_alloc_max_entries: 100000
+      stack_depth: 32
+      context: "all"
+      stacks: "all"
+      kw_args: {}
+
+# ---------- TransferQueue ----------
+transfer_queue:
+  enable: false
+
+# ---------- Ray ----------
+ray_kwargs:
+  ray_init:
+    num_cpus: null
+  timeline_json_file: null
