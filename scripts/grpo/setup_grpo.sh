@@ -2,7 +2,7 @@
 set -x
 set -e
 
-# Use container-shipped verl (from mldev-images)
+# Verify pre-installed verl and dependencies
 python -c "import verl; print(f'verl version: {verl.__version__}')"
 pip freeze | grep verl
 pip freeze | grep torch
