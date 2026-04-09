@@ -13,6 +13,6 @@ pip freeze | grep transformers
 
 pip install tensordict
 
-# Add OPSD module to PYTHONPATH
+# Add OPD module to PYTHONPATH
 export PYTHONPATH="${REPO_ROOT}/src:${PYTHONPATH}"
-python -c "from opsd import losses; print('OPSD module imported successfully')"
+python -c "from opd import losses; print('OPD module imported successfully')"

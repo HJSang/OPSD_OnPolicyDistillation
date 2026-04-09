@@ -1,9 +1,9 @@
 """
-Main entry point for OPSD training with verl.
+Main entry point for OPD training with verl.
 
 Usage:
-    python -m opsd.main_opsd \
-        --config-path ./config --config-name opsd_trainer \
+    python -m opd.main_opd \
+        --config-path ./config --config-name opd_trainer \
         actor_rollout_ref.model.path=/path/to/model \
         data.train_files=/path/to/train.parquet
 """
@@ -19,12 +19,12 @@ from omegaconf import OmegaConf
 logger = logging.getLogger(__name__)
 
 
-@hydra.main(config_path="config", config_name="opsd_trainer", version_base=None)
+@hydra.main(config_path="config", config_name="opd_trainer", version_base=None)
 def main(config):
-    run_opsd(config)
+    run_opd(config)
 
 
-def run_opsd(config):
+def run_opd(config):
     if not ray.is_initialized():
         from verl.trainer.constants_ppo import get_ppo_ray_runtime_env
 
@@ -35,13 +35,13 @@ def run_opsd(config):
         ray_init_kwargs = OmegaConf.create({**ray_init_kwargs, "runtime_env": runtime_env})
         ray.init(**OmegaConf.to_container(ray_init_kwargs))
 
-    task_runner_class = ray.remote(num_cpus=1)(OPSDTaskRunner)
+    task_runner_class = ray.remote(num_cpus=1)(OPDTaskRunner)
     runner = task_runner_class.remote()
     ray.get(runner.run.remote(config))
 
 
-class OPSDTaskRunner:
-    """Ray remote class for OPSD training."""
+class OPDTaskRunner:
+    """Ray remote class for OPD training."""
 
     def __init__(self):
         self.role_worker_mapping = {}
@@ -50,14 +50,14 @@ class OPSDTaskRunner:
     def add_worker(self, config):
         from verl.single_controller.ray import RayWorkerGroup
         from verl.trainer.ppo.ray_trainer import Role
-        from opsd.opsd_worker import OPSDWorker
+        from opd.opd_worker import OPDWorker
 
-        # Map both ActorRollout and ActorRolloutRef to OPSDWorker.
+        # Map both ActorRollout and ActorRolloutRef to OPDWorker.
         # RayPPOTrainer.init_workers() looks up Role.ActorRollout for
-        # the hybrid engine path, while OPSDTrainer needs ActorRolloutRef
+        # the hybrid engine path, while OPDTrainer needs ActorRolloutRef
         # for the ref model (frozen teacher).
-        self.role_worker_mapping[Role.ActorRollout] = ray.remote(OPSDWorker)
-        self.role_worker_mapping[Role.ActorRolloutRef] = ray.remote(OPSDWorker)
+        self.role_worker_mapping[Role.ActorRollout] = ray.remote(OPDWorker)
+        self.role_worker_mapping[Role.ActorRolloutRef] = ray.remote(OPDWorker)
         self.mapping[Role.ActorRollout] = "global_pool"
         self.mapping[Role.ActorRolloutRef] = "global_pool"
         return RayWorkerGroup
@@ -74,7 +74,7 @@ class OPSDTaskRunner:
         from verl.experimental.reward_loop import migrate_legacy_reward_impl
         from verl.utils.fs import copy_to_local
 
-        logger.info("OPSDTaskRunner on %s, PID %d", socket.gethostname(), os.getpid())
+        logger.info("OPDTaskRunner on %s, PID %d", socket.gethostname(), os.getpid())
 
         config = migrate_legacy_reward_impl(config)
 
@@ -112,9 +112,9 @@ class OPSDTaskRunner:
 
         resource_pool_manager = self.init_resource_pool_mgr(config)
 
-        from opsd.opsd_trainer import OPSDTrainer
+        from opd.opd_trainer import OPDTrainer
 
-        trainer = OPSDTrainer(
+        trainer = OPDTrainer(
             config=config,
             tokenizer=tokenizer,
             processor=processor,

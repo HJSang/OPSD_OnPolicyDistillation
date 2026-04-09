@@ -1,1 +1,1 @@
-"""Common utilities shared between training methods (OPSD, RLSD)."""
+"""Common utilities shared between training methods (OPD, etc.)."""

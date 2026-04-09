@@ -89,7 +89,7 @@ ls -lh "$OUTPUT_DIR"/*.parquet
 # ============================================================================
 
 MODEL_NAME_SAFE=$(echo "$MODEL_NAME" | tr '/' '_')
-RUN_ID=${FLYTE_INTERNAL_EXECUTION_ID:-local}
+RUN_ID=${RUN_ID:-local}
 EXP_NAME=${MODEL_NAME_SAFE}-${RUN_ID}-GRPO-native-noKL-lr${learning_rate}-bs${train_batch_size}-n${rollout_n}
 
 OUTPUT_ROOT=${OUTPUT_ROOT:-"${REPO_ROOT}/outputs"}
@@ -172,7 +172,7 @@ python -m verl.trainer.main_ppo \
     reward.custom_reward_function.name=compute_score \
     trainer.critic_warmup=0 \
     trainer.logger='["console"]' \
-    trainer.project_name=$MLFLOW_EXPERIMENT_NAME \
+    trainer.project_name=grpo \
     trainer.experiment_name=$EXP_NAME \
     trainer.n_gpus_per_node=$GPUS_PER_NODE \
     trainer.nnodes=1 \

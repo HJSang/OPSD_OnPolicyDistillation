@@ -1,10 +1,11 @@
 """
-OPSD trainer built on top of verl's PPO driver infrastructure.
+On-Policy Distillation trainer built on top of verl's PPO driver infrastructure.
 
 The PPO trainer already owns the standard verl data contract, validation flow,
-generation dumping, and checkpoint management. OPSD reuses that outer shell and
+generation dumping, and checkpoint management. OPD reuses that outer shell and
 only swaps in a custom train step that converts a rollout batch into paired
-teacher/student sequences for divergence minimization.
+teacher/student sequences for divergence minimization. Both teacher and student
+see the same input sequences (no privileged information).
 """
 
 import logging
@@ -25,13 +26,13 @@ from verl.trainer.ppo.ray_trainer import RayPPOTrainer, ResourcePoolManager, Rol
 from verl.trainer.ppo.reward import get_custom_reward_fn
 from verl.utils.metric import reduce_metrics
 
-from .batch_builder import build_opsd_batch_from_verl_batch
+from .batch_builder import build_opd_batch
 
 py_logger = logging.getLogger(__name__)
 
 
-class OPSDTrainer(RayPPOTrainer):
-    """OPSD trainer that reuses PPO's dataloading, validation, and checkpointing."""
+class OPDTrainer(RayPPOTrainer):
+    """OPD trainer that reuses PPO's dataloading, validation, and checkpointing."""
 
     def __init__(
         self,
@@ -61,19 +62,13 @@ class OPSDTrainer(RayPPOTrainer):
             collate_fn=collate_fn,
         )
 
-        opsd_cfg = config.get("opsd", {})
-        self.loss_type = opsd_cfg.get("loss_type", "reverse_kl")
-        self.beta = opsd_cfg.get("beta", 0.5)
-        self.chunk_size = opsd_cfg.get("chunk_size", 512)
-        self.opsd_max_length = opsd_cfg.get("max_length", 16384)
+        opd_cfg = config.get("opd", {})
+        self.loss_type = opd_cfg.get("loss_type", "reverse_kl")
+        self.beta = opd_cfg.get("beta", 0.5)
+        self.chunk_size = opd_cfg.get("chunk_size", 512)
+        self.opd_max_length = opd_cfg.get("max_length", 16384)
         self.test_freq = config.trainer.test_freq
-        self.teacher_system_prompt = opsd_cfg.get("teacher_system_prompt", None)
-        # When a separate teacher model is used (ref.model.path != actor model path),
-        # skip ground truth injection — the bigger teacher model is inherently better.
-        teacher_model_path = config.actor_rollout_ref.ref.get("model", {}).get("path", None)
-        actor_model_path = config.actor_rollout_ref.model.path
-        self.use_teacher_context = teacher_model_path is None or teacher_model_path == actor_model_path
-        self.reward_beta = opsd_cfg.get("reward_beta", None)
+        self.reward_beta = opd_cfg.get("reward_beta", None)
         if self.reward_beta is not None and self.reward_beta <= 0:
             self.reward_beta = None
         apply_chat_template_kwargs = config.data.get("apply_chat_template_kwargs", {})
@@ -86,11 +81,13 @@ class OPSDTrainer(RayPPOTrainer):
         if self.reward_fn is None:
             # Fallback to verl's built-in math_dapo verify for backward compatibility
             from verl.utils.reward_score.math_dapo import verify
-            self.reward_fn = lambda solution_str, ground_truth, **kwargs: {
-                "score": float(verify(solution_str, ground_truth)[0]),
-                "acc": float(verify(solution_str, ground_truth)[0]),
-                "pred": verify(solution_str, ground_truth)[1],
-            }
+
+            def _fallback_reward(solution_str, ground_truth, **kwargs):
+                correct, pred = verify(solution_str, ground_truth)
+                score = float(correct)
+                return {"score": score, "acc": score, "pred": pred}
+
+            self.reward_fn = _fallback_reward
 
     # init_workers() is inherited from RayPPOTrainer -- it handles
     # resource pools, worker group creation, AgentLoopManager, and
@@ -109,17 +106,17 @@ class OPSDTrainer(RayPPOTrainer):
             decoded.append(self.tokenizer.decode(response_ids[response_mask.bool()], skip_special_tokens=True))
         return decoded
 
-    def _pad_opsd_batch_for_dispatch(self, opsd_batch: DataProto) -> DataProto:
+    def _pad_opd_batch_for_dispatch(self, opd_batch: DataProto) -> DataProto:
         n_dp = self.config.trainer.n_gpus_per_node * self.config.trainer.nnodes
-        n_samples = opsd_batch.batch["student_input_ids"].shape[0]
+        n_samples = opd_batch.batch["student_input_ids"].shape[0]
         if n_samples == 0 or n_samples % n_dp == 0:
-            return opsd_batch
+            return opd_batch
 
         pad_to = ((n_samples // n_dp) + 1) * n_dp
         pad_count = pad_to - n_samples
         padded = {}
-        for key in list(opsd_batch.batch.keys()):
-            tensor = opsd_batch.batch[key]
+        for key in list(opd_batch.batch.keys()):
+            tensor = opd_batch.batch[key]
             if key == "valid_row_mask" or key == "sample_weights":
                 padded_rows = torch.zeros(pad_count, dtype=tensor.dtype, device=tensor.device)
             else:
@@ -128,10 +125,10 @@ class OPSDTrainer(RayPPOTrainer):
         return DataProto.from_single_dict(padded)
 
     def _validate(self, merged: bool = False):
-        """OPSD validation: generate responses and verify against ground truth.
+        """OPD validation: generate responses and verify against ground truth.
 
         Overrides the parent's _validate() which depends on the full reward loop
-        infrastructure. OPSD runs the math verifier directly and delegates metric
+        infrastructure. OPD runs the math verifier directly and delegates metric
         aggregation (pass@k, maj@k, mean, std) to verl's process_validation_metrics
         so that val.n > 1 produces proper per-prompt statistics.
         """
@@ -176,7 +173,10 @@ class OPSDTrainer(RayPPOTrainer):
             test_output = unpad_dataproto(test_output_padded, pad_size=pad_size)
 
             test_batch = test_batch.union(test_output)
-            test_batch.batch["response_mask"] = compute_response_mask(test_batch)
+            # Preserve agent-loop response_mask (1=LLM, 0=tool) if present;
+            # only compute from attention_mask for single-turn rollouts.
+            if "response_mask" not in test_output.batch:
+                test_batch.batch["response_mask"] = compute_response_mask(test_batch)
             responses = self._decode_response_texts(test_batch)
 
             # Score each response with the reward function
@@ -232,7 +232,7 @@ class OPSDTrainer(RayPPOTrainer):
         return metrics
 
     def fit(self):
-        """Main OPSD training loop using PPO's driver-side infra."""
+        """Main OPD training loop using PPO's driver-side infra."""
         from verl.utils.tracking import Tracking
 
         logger = Tracking(
@@ -245,7 +245,7 @@ class OPSDTrainer(RayPPOTrainer):
         self.global_steps = 0
         self._load_checkpoint()
         self.checkpoint_manager.update_weights()
-        progress = tqdm(total=self.total_training_steps, initial=self.global_steps, desc="OPSD Training")
+        progress = tqdm(total=self.total_training_steps, initial=self.global_steps, desc="OPD Training")
 
         if self.config.trainer.get("val_before_train", True):
             val_metrics = self._validate()
@@ -259,7 +259,7 @@ class OPSDTrainer(RayPPOTrainer):
             for batch_dict in self.train_dataloader:
                 if self.global_steps >= self.total_training_steps:
                     progress.close()
-                    py_logger.info("OPSD training complete at step %d", self.global_steps)
+                    py_logger.info("OPD training complete at step %d", self.global_steps)
                     return
 
                 self.global_steps += 1
@@ -293,7 +293,31 @@ class OPSDTrainer(RayPPOTrainer):
                 # Restore raw_prompt (popped by _get_gen_batch since it's not in reward_model_keys)
                 if saved_raw_prompt is not None and "raw_prompt" not in batch.non_tensor_batch:
                     batch.non_tensor_batch["raw_prompt"] = saved_raw_prompt
-                batch.batch["response_mask"] = compute_response_mask(batch)
+                # In multi-turn agent loop, gen_output already contains response_mask
+                # with 1=LLM, 0=tool distinction. Don't overwrite it.
+                # In single-turn, response_mask is not set, so compute from attention_mask.
+                has_agent_mask = "response_mask" in gen_output.batch
+                if not has_agent_mask:
+                    batch.batch["response_mask"] = compute_response_mask(batch)
+
+                # Log multi-turn tool call diagnostics
+                if has_agent_mask:
+                    rmask = batch.batch["response_mask"]
+                    total_resp = rmask.numel()
+                    llm_tokens = rmask.sum().item()
+                    tool_tokens = total_resp - llm_tokens
+                    metrics["opd/tool_mask/has_agent_mask"] = 1.0
+                    metrics["opd/tool_mask/llm_tokens"] = llm_tokens
+                    metrics["opd/tool_mask/tool_tokens"] = tool_tokens
+                    metrics["opd/tool_mask/tool_ratio"] = tool_tokens / max(1, total_resp)
+                else:
+                    metrics["opd/tool_mask/has_agent_mask"] = 0.0
+
+                if "__num_turns__" in gen_output.non_tensor_batch:
+                    turns = gen_output.non_tensor_batch["__num_turns__"]
+                    metrics["opd/num_turns/min"] = int(min(turns))
+                    metrics["opd/num_turns/max"] = int(max(turns))
+                    metrics["opd/num_turns/mean"] = float(sum(turns)) / len(turns)
 
                 responses = self._decode_response_texts(batch)
                 ground_truths = [
@@ -310,42 +334,40 @@ class OPSDTrainer(RayPPOTrainer):
                     else:
                         rewards.append(0.0)
                 n_correct = sum(rewards)
-                metrics["opsd/accuracy"] = n_correct / max(1, batch_size)
-                metrics["opsd/batch_size"] = batch_size
+                metrics["opd/accuracy"] = n_correct / max(1, batch_size)
+                metrics["opd/batch_size"] = batch_size
 
                 # Compute per-sample weights from rewards
                 sample_weights = None
                 if self.reward_beta is not None:
                     reward_tensor = torch.tensor(rewards, dtype=torch.float32)
                     sample_weights = torch.softmax(reward_tensor / self.reward_beta, dim=0) * len(rewards)
-                    metrics["opsd/reward_weight_max"] = sample_weights.max().item()
-                    metrics["opsd/reward_weight_min"] = sample_weights.min().item()
-                    metrics["opsd/n_correct"] = int(n_correct)
+                    metrics["opd/reward_weight_max"] = sample_weights.max().item()
+                    metrics["opd/reward_weight_min"] = sample_weights.min().item()
+                    metrics["opd/n_correct"] = int(n_correct)
 
                 train_t0 = time.time()
-                opsd_batch = build_opsd_batch_from_verl_batch(
+                opd_batch = build_opd_batch(
                     batch=batch,
                     tokenizer=self.tokenizer,
-                    max_length=self.opsd_max_length,
-                    teacher_system_prompt=self.teacher_system_prompt if self.use_teacher_context else None,
+                    max_length=self.opd_max_length,
                     apply_chat_template_kwargs=self.apply_chat_template_kwargs,
-                    use_teacher_context=self.use_teacher_context,
                     sample_weights=sample_weights,
                 )
 
-                if opsd_batch is not None:
-                    opsd_batch = self._pad_opsd_batch_for_dispatch(opsd_batch)
-                    opsd_batch.meta_info["opsd_loss_type"] = self.loss_type
-                    opsd_batch.meta_info["opsd_beta"] = self.beta
-                    opsd_batch.meta_info["opsd_chunk_size"] = self.chunk_size
+                if opd_batch is not None:
+                    opd_batch = self._pad_opd_batch_for_dispatch(opd_batch)
+                    opd_batch.meta_info["opd_loss_type"] = self.loss_type
+                    opd_batch.meta_info["opd_beta"] = self.beta
+                    opd_batch.meta_info["opd_chunk_size"] = self.chunk_size
                     if self.reward_beta is not None:
-                        opsd_batch.meta_info["opsd_reward_beta"] = self.reward_beta
+                        opd_batch.meta_info["opd_reward_beta"] = self.reward_beta
 
-                    opsd_output = self.actor_rollout_wg.update_opsd(opsd_batch)
-                    opsd_metrics = reduce_metrics(opsd_output.meta_info["metrics"])
-                    metrics.update(opsd_metrics)
+                    opd_output = self.actor_rollout_wg.update_opd(opd_batch)
+                    opd_metrics = reduce_metrics(opd_output.meta_info["metrics"])
+                    metrics.update(opd_metrics)
                 else:
-                    metrics["opsd/skipped"] = 1.0
+                    metrics["opd/skipped"] = 1.0
 
                 # Reload SGLang with updated actor weights for next rollout
                 self.checkpoint_manager.update_weights()
@@ -369,8 +391,8 @@ class OPSDTrainer(RayPPOTrainer):
 
                 if is_last:
                     progress.close()
-                    py_logger.info("OPSD training complete at step %d", self.global_steps)
+                    py_logger.info("OPD training complete at step %d", self.global_steps)
                     return
 
         progress.close()
-        py_logger.info("OPSD training complete!")
+        py_logger.info("OPD training complete!")

@@ -1,14 +1,14 @@
-# OPSD (On-Policy Self-Distillation) Trainer config
+# OPD (On-Policy Distillation) Trainer config
 #
-# Same model serves as both teacher p_T(·|x, y*) and student p_S(·|x).
-# Teacher is conditioned on question + ground truth answer from training data.
-# Student generates on-policy rollouts from question-only prompts.
+# A separate teacher model (ref) and trainable student model (actor) see the
+# same input sequences. The teacher produces better distributions naturally.
 # Training minimizes token-wise divergence D(p_T || p_S) along student rollout.
 #
 # Usage:
-#   python -m opsd.main_opsd \
-#     --config-path ./config --config-name opsd_trainer \
-#     actor_rollout_ref.model.path=/path/to/model \
+#   python -m opd.main_opd \
+#     --config-path ./config --config-name opd_trainer \
+#     actor_rollout_ref.model.path=/path/to/student_model \
+#     +actor_rollout_ref.ref.model.path=/path/to/teacher_model \
 #     data.train_files=/path/to/train.parquet \
 #     data.val_files="['/path/to/val1.parquet','/path/to/val2.parquet']"
 
@@ -51,10 +51,8 @@ actor_rollout_ref:
       top_k: 20
 
   ref:
-    # Optional: set model.path to a bigger model for teacher model mode.
-    # When ref.model.path differs from the actor model path, the teacher
-    # is the bigger model and no ground truth context is injected.
-    # When unset or same as actor, uses teacher context mode (OPSD paper).
+    # Set model.path to the teacher model (typically bigger/stronger).
+    # Both teacher and student see the same input sequences.
     fsdp_config:
       param_offload: true
 
@@ -78,8 +76,8 @@ algorithm:
     reweight_method: pow
     weight_pow: 2.0
 
-# ---------- OPSD specific ----------
-opsd:
+# ---------- OPD specific ----------
+opd:
   # Divergence type: "reverse_kl" | "forward_kl" | "jsd"
   #   reverse_kl: KL(p_student || p_teacher) — mode-seeking, student focuses on teacher peaks
   #   forward_kl: KL(p_teacher || p_student) — mean-seeking, student covers teacher modes
@@ -94,16 +92,13 @@ opsd:
   # Smaller = less peak memory, larger = slightly faster
   chunk_size: 512
 
-  # Max sequence length for OPSD training (prompt + response)
+  # Max sequence length for OPD training (prompt + response)
   max_length: 16384
 
-  # Optional system prompt for teacher. If null, ground truth is appended to user message.
-  teacher_system_prompt: null
-
   # Reward-weighted distillation: weight each sample's KL loss by softmax(reward / reward_beta).
-  # null or 0 = disabled (uniform weighting, standard OPSD).
+  # null or 0 = disabled (uniform weighting, standard OPD).
   # Small values (e.g. 0.1) = hard filtering (only correct samples).
-  # Large values (e.g. 10.0) = near-uniform (approaches standard OPSD).
+  # Large values (e.g. 10.0) = near-uniform (approaches standard OPD).
   # Requires rollout_n > 1 for meaningful differentiation.
   reward_beta: null
 
@@ -117,9 +112,9 @@ trainer:
   balance_batch: false
   total_epochs: 15
   total_training_steps: null
-  project_name: opsd
-  experiment_name: opsd_training
-  logger: ["console", "mlflow"]
+  project_name: opd
+  experiment_name: opd_training
+  logger: ["console"]
   log_val_generations: 10
   nnodes: 1
   n_gpus_per_node: 8
