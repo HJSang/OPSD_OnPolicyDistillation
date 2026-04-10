@@ -13,17 +13,14 @@ export MASTER_PORT=${MASTER_PORT:-$(shuf -i 29500-39999 -n 1)}
 
 echo "PYTHONPATH: $PYTHONPATH"
 
-
-# MLflow setup removed; use console logging only.
-
 # ============================================================================
 # Configuration (from environment variables, with defaults)
 # ============================================================================
 
 MODEL_PATH=${MODEL_PATH:?MODEL_PATH environment variable is required}
 MODEL_NAME=${MODEL_NAME:-$(basename "$MODEL_PATH")}
-# Optional: separate teacher model (bigger model). If unset, uses same model with ground truth context.
-TEACHER_MODEL_PATH=${TEACHER_MODEL_PATH:-}
+# Teacher model (typically bigger/stronger). Both teacher and student see the same input.
+TEACHER_MODEL_PATH=${TEACHER_MODEL_PATH:?TEACHER_MODEL_PATH environment variable is required}
 
 # Training hyperparameters
 train_batch_size=${TRAIN_BATCH_SIZE:-256}
@@ -39,12 +36,12 @@ rollout_n=${ROLLOUT_N:-1}
 tp_size=${TP_SIZE:-1}
 gpu_memory_util=${GPU_MEMORY_UTIL:-0.7}
 
-# OPSD-specific: divergence type and chunk size
-opsd_loss_type=${OPSD_LOSS_TYPE:-reverse_kl}
-opsd_chunk_size=${OPSD_CHUNK_SIZE:-256}
-opsd_max_length=${OPSD_MAX_LENGTH:-16384}
+# OPD-specific: divergence type and chunk size
+opd_loss_type=${OPD_LOSS_TYPE:-reverse_kl}
+opd_chunk_size=${OPD_CHUNK_SIZE:-256}
+opd_max_length=${OPD_MAX_LENGTH:-16384}
 # Reward-weighted distillation: set to a positive float to enable (e.g., 0.1, 0.5, 1.0)
-opsd_reward_beta=${OPSD_REWARD_BETA:-}
+opd_reward_beta=${OPD_REWARD_BETA:-}
 
 # Sampling: high temperature for exploration during student rollout
 temperature=${TEMPERATURE:-1.0}
@@ -104,36 +101,33 @@ ls -lh "$OUTPUT_DIR"/*.parquet
 # ============================================================================
 
 MODEL_NAME_SAFE=$(echo "$MODEL_NAME" | tr '/' '_')
-RUN_ID=${FLYTE_INTERNAL_EXECUTION_ID:-local}
+RUN_ID=${RUN_ID:-local}
 if [ "$ENABLE_THINKING" = "True" ]; then
     THINK_TAG="thinking"
 else
     THINK_TAG="nothink"
 fi
 REWARD_TAG=""
-if [ -n "$opsd_reward_beta" ]; then
-    REWARD_TAG="-rwbeta${opsd_reward_beta}"
+if [ -n "$opd_reward_beta" ]; then
+    REWARD_TAG="-rwbeta${opd_reward_beta}"
 fi
-TEACHER_TAG=""
-if [ -n "$TEACHER_MODEL_PATH" ]; then
-    TEACHER_NAME=$(basename "$(dirname "$TEACHER_MODEL_PATH")")
-    TEACHER_TAG="-teacher-${TEACHER_NAME}"
-fi
-EXP_NAME=${MODEL_NAME_SAFE}-${RUN_ID}-OPSD-${opsd_loss_type}${REWARD_TAG}${TEACHER_TAG}-${THINK_TAG}-lr${learning_rate}-bs${train_batch_size}-n${rollout_n}
+TEACHER_NAME=$(basename "$(dirname "$TEACHER_MODEL_PATH")")
+TEACHER_TAG="-teacher-${TEACHER_NAME}"
+EXP_NAME=${MODEL_NAME_SAFE}-${RUN_ID}-OPD-${opd_loss_type}${REWARD_TAG}${TEACHER_TAG}-${THINK_TAG}-lr${learning_rate}-bs${train_batch_size}-n${rollout_n}
 
 OUTPUT_ROOT=${OUTPUT_ROOT:-"${REPO_ROOT}/outputs"}
 output_dir="${OUTPUT_ROOT}/${EXP_NAME}"
 mkdir -p "$output_dir"
 
 # Background GPU memory monitor — survives Python OOM kills
-# Logs every 2s to NFS so we can see memory at the exact moment of OOM
+# Logs every 2s so we can see memory at the exact moment of OOM
 GPU_MONITOR_LOG="${output_dir}/gpu_memory_monitor.csv"
 nvidia-smi --query-gpu=timestamp,index,memory.used,memory.free,memory.total,utilization.gpu --format=csv -l 2 > "${GPU_MONITOR_LOG}" 2>&1 &
 GPU_MONITOR_PID=$!
 echo "GPU monitor started (PID: $GPU_MONITOR_PID), logging to ${GPU_MONITOR_LOG}"
 trap "kill $GPU_MONITOR_PID 2>/dev/null" EXIT
 
-echo "=== OPSD Training Configuration ==="
+echo "=== OPD Training Configuration ==="
 echo "MODEL_PATH: $MODEL_PATH"
 echo "MODEL_NAME: $MODEL_NAME"
 echo "train_batch_size: $train_batch_size"
@@ -144,11 +138,11 @@ echo "max_prompt_length: $max_prompt_length"
 echo "max_response_length: $max_response_length"
 echo "tp_size: $tp_size"
 echo "gpu_memory_util: $gpu_memory_util"
-echo "--- OPSD features ---"
-echo "opsd_loss_type: $opsd_loss_type"
-echo "opsd_chunk_size: $opsd_chunk_size"
-echo "opsd_max_length: $opsd_max_length"
-echo "opsd_reward_beta: ${opsd_reward_beta:-disabled}"
+echo "--- OPD features ---"
+echo "opd_loss_type: $opd_loss_type"
+echo "opd_chunk_size: $opd_chunk_size"
+echo "opd_max_length: $opd_max_length"
+echo "opd_reward_beta: ${opd_reward_beta:-disabled}"
 echo "temperature: $temperature"
 echo "val_temperature: $val_temperature"
 echo "val_top_p: $val_top_p"
@@ -158,14 +152,14 @@ echo "output_dir: $output_dir"
 echo "====================================="
 
 # ============================================================================
-# Launch OPSD training via Hydra
+# Launch OPD training via Hydra
 # ============================================================================
 
-echo "Starting OPSD training (loss_type=${opsd_loss_type})..."
+echo "Starting OPD training (loss_type=${opd_loss_type})..."
 
-python -m opsd.main_opsd \
-    --config-path "${SRC_ROOT}/opsd/config" \
-    --config-name opsd_trainer \
+python -m opd.main_opd \
+    --config-path "${SRC_ROOT}/opd/config" \
+    --config-name opd_trainer \
     data.train_files=$TRAIN_FILE \
     data.val_files="['$VAL_MATH500','$VAL_AIME24','$VAL_AIME25']" \
     data.return_raw_chat=True \
@@ -187,7 +181,7 @@ python -m opsd.main_opsd \
     actor_rollout_ref.actor.fsdp_config.param_offload=True \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=True \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
-    ${TEACHER_MODEL_PATH:+"+actor_rollout_ref.ref.model.path=$TEACHER_MODEL_PATH"} \
+    +actor_rollout_ref.ref.model.path=$TEACHER_MODEL_PATH \
     actor_rollout_ref.rollout.tensor_model_parallel_size=$tp_size \
     actor_rollout_ref.rollout.name=sglang \
     actor_rollout_ref.rollout.mode=async \
@@ -202,15 +196,14 @@ python -m opsd.main_opsd \
     actor_rollout_ref.rollout.val_kwargs.top_k=${val_top_k} \
     actor_rollout_ref.rollout.val_kwargs.do_sample=True \
     actor_rollout_ref.rollout.val_kwargs.n=16 \
-    opsd.loss_type=${opsd_loss_type} \
-    opsd.chunk_size=${opsd_chunk_size} \
-    opsd.max_length=${opsd_max_length} \
-    ${opsd_reward_beta:+"opsd.reward_beta=$opsd_reward_beta"} \
+    opd.loss_type=${opd_loss_type} \
+    opd.chunk_size=${opd_chunk_size} \
+    opd.max_length=${opd_max_length} \
+    ${opd_reward_beta:+"opd.reward_beta=$opd_reward_beta"} \
     reward.custom_reward_function.path="${SRC_ROOT}/rewards/math_reward.py" \
     reward.custom_reward_function.name=compute_score \
     trainer.critic_warmup=0 \
     trainer.logger='["console"]' \
-    trainer.project_name=$MLFLOW_EXPERIMENT_NAME \
     trainer.experiment_name=$EXP_NAME \
     trainer.n_gpus_per_node=$GPUS_PER_NODE \
     trainer.nnodes=1 \
@@ -223,7 +216,7 @@ python -m opsd.main_opsd \
     trainer.total_epochs=$total_epochs
 
 echo ""
-echo "=== OPSD training completed ==="
+echo "=== OPD training completed ==="
 echo "Model: $MODEL_NAME"
-echo "Loss type: $opsd_loss_type"
+echo "Loss type: $opd_loss_type"
 echo "Checkpoints and results saved to: $output_dir"

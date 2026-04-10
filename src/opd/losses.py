@@ -1,5 +1,5 @@
 """
-Chunk-wise memory-efficient divergence losses for OPSD.
+Chunk-wise memory-efficient divergence losses for OPD.
 
 All loss functions process tokens in chunks to avoid OOM from materializing
 full (N, V) float32 probability tensors. With V=152K (Qwen3), a single

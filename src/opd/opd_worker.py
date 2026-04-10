@@ -1,14 +1,13 @@
 """
-OPSD Worker: extends verl's ActorRolloutRefWorker with divergence-based training.
+OPD Worker: extends verl's ActorRolloutRefWorker with divergence-based training.
 
-The same model p_theta serves as both:
-  - Teacher p_T(·|x, y*): conditioned on question + ground truth answer
-  - Student p_S(·|x): conditioned on question only
+A separate teacher model (ref) and trainable student model (actor) see the same
+input sequences. The teacher produces better distributions naturally (bigger/stronger).
 
 Training step:
-  1. Forward teacher (ref model) on teacher_input_ids (prompt includes y*) -> teacher logits
-  2. Forward student (actor model) on student_input_ids (prompt is x only) -> student logits
-  3. Compute token-wise divergence along student rollout positions
+  1. Forward teacher (ref model, frozen) on teacher_input_ids -> teacher logits
+  2. Forward student (actor model, trainable) on student_input_ids -> student logits
+  3. Compute token-wise divergence along response positions
   4. Backward and step optimizer
 """
 
@@ -67,25 +66,26 @@ def _shift_ids_within_sequences(ids_rmpad: torch.Tensor, cu_seqlens: torch.Tenso
     return shifted
 
 
-class OPSDWorker(AsyncActorRolloutRefWorker):
-    """Worker with OPSD divergence training on top of verl's actor+rollout+ref.
+class OPDWorker(AsyncActorRolloutRefWorker):
+    """Worker with on-policy distillation training on top of verl's actor+rollout+ref.
 
     Inherits actor_module_fsdp (student) and ref_module_fsdp (teacher) from
-    the HybridEngine ActorRolloutRef worker.
+    the HybridEngine ActorRolloutRef worker. Both teacher and student see the
+    same input sequences (no privileged information).
     """
 
     def __init__(self, config, role: str, **kwargs):
         # The parent trainer's init_workers() creates hybrid-engine workers with
         # role="actor_rollout", which sets _is_ref=False and skips building
-        # ref_module_fsdp.  OPSD needs the colocated ref model as the teacher,
+        # ref_module_fsdp.  OPD needs the colocated ref model as the teacher,
         # so we promote the role to "actor_rollout_ref".
         if role == "actor_rollout":
             role = "actor_rollout_ref"
         super().__init__(config=config, role=role, **kwargs)
 
     @register(dispatch_mode=make_nd_compute_dataproto_dispatch_fn(mesh_name="actor"))
-    def update_opsd(self, data: DataProto) -> DataProto:
-        """One OPSD training step: divergence between teacher and student.
+    def update_opd(self, data: DataProto) -> DataProto:
+        """One OPD training step: divergence between teacher and student.
 
         Uses a two-phase approach to avoid holding both models on GPU simultaneously:
           Phase 1: Load teacher (ref) → run all teacher forwards → cache logits on CPU → offload teacher
@@ -96,23 +96,23 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
           student_input_ids, student_attention_mask, student_position_ids, student_loss_mask
 
         Meta info:
-          opsd_loss_type: "reverse_kl" | "forward_kl" | "jsd"
-          opsd_beta: JSD interpolation (only used for jsd)
-          opsd_chunk_size: tokens per chunk for loss computation
+          opd_loss_type: "reverse_kl" | "forward_kl" | "jsd"
+          opd_beta: JSD interpolation (only used for jsd)
+          opd_chunk_size: tokens per chunk for loss computation
         """
-        assert self._is_actor, "update_opsd requires actor role"
+        assert self._is_actor, "update_opd requires actor role"
 
         def _mem(tag):
             alloc = torch.cuda.memory_allocated() / (1024**3)
             reserved = torch.cuda.memory_reserved() / (1024**3)
-            logger.info("[OPSD-MEM] %s: allocated=%.2f GB, reserved=%.2f GB", tag, alloc, reserved)
+            logger.info("[OPD-MEM] %s: allocated=%.2f GB, reserved=%.2f GB", tag, alloc, reserved)
 
         ref_needs_offload = self.config.ref.fsdp_config.get("param_offload", False)
 
         data = data.to("cpu")
-        loss_type = data.meta_info.get("opsd_loss_type", "reverse_kl")
-        beta = data.meta_info.get("opsd_beta", 0.5)
-        chunk_size = data.meta_info.get("opsd_chunk_size", 512)
+        loss_type = data.meta_info.get("opd_loss_type", "reverse_kl")
+        beta = data.meta_info.get("opd_beta", 0.5)
+        chunk_size = data.meta_info.get("opd_chunk_size", 512)
 
         use_remove_padding = self.config.model.get("use_remove_padding", False)
         micro_batch_size = self.config.actor.get(
@@ -123,10 +123,10 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
 
         batch_size = data.batch["student_input_ids"].shape[0]
         if batch_size == 0:
-            return DataProto(meta_info={"metrics": {"opsd/loss": 0.0, "opsd/num_tokens": 0}})
+            return DataProto(meta_info={"metrics": {"opd/loss": 0.0, "opd/num_tokens": 0}})
 
         micro_batches = list(data.split(micro_batch_size))
-        logger.info("[OPSD-MEM] batch_size=%d, micro_batches=%d, micro_batch_size=%d, ref_needs_offload=%s",
+        logger.info("[OPD-MEM] batch_size=%d, micro_batches=%d, micro_batch_size=%d, ref_needs_offload=%s",
                      batch_size, len(micro_batches), micro_batch_size, ref_needs_offload)
         _mem("before-ulysses")
 
@@ -163,7 +163,7 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
                     t_position_ids = t_position_ids[valid_row_mask]
                     t_loss_mask = t_loss_mask[valid_row_mask]
 
-                logger.info("[OPSD-MEM] phase1 micro_batch[%d]: teacher_ids shape=%s, loss_mask response_tokens=%d",
+                logger.info("[OPD-MEM] phase1 micro_batch[%d]: teacher_ids shape=%s, loss_mask response_tokens=%d",
                             i, list(t_input_ids.shape), int(t_loss_mask[:, 1:].sum().item()))
                 _mem(f"phase1-mb{i}-before-teacher-fwd")
 
@@ -171,7 +171,7 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
                     teacher_logits = forward_fn(
                         self.ref_module_fsdp, t_input_ids, t_attention_mask, t_position_ids, t_loss_mask
                     )
-                logger.info("[OPSD-MEM] phase1 micro_batch[%d]: teacher_logits shape=%s",
+                logger.info("[OPD-MEM] phase1 micro_batch[%d]: teacher_logits shape=%s",
                             i, list(teacher_logits.shape))
                 _mem(f"phase1-mb{i}-after-teacher-fwd")
 
@@ -198,7 +198,7 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
             _mem("phase2-after-optimizer-load")
 
             use_sample_weights = "sample_weights" in data.batch
-            metrics = self._opsd_training_step(
+            metrics = self._opd_training_step(
                 micro_batches, teacher_logits_cache,
                 loss_type=loss_type, beta=beta, chunk_size=chunk_size,
                 use_remove_padding=use_remove_padding, device=device, batch_size=batch_size,
@@ -206,11 +206,11 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
             )
 
             lr = self.actor_lr_scheduler.get_last_lr()[0]
-            metrics["opsd/lr"] = lr.item() if torch.is_tensor(lr) else lr
-            if metrics["opsd/num_tokens"] > 0:
+            metrics["opd/lr"] = lr.item() if torch.is_tensor(lr) else lr
+            if metrics["opd/num_tokens"] > 0:
                 self.actor_lr_scheduler.step()
             else:
-                metrics["opsd/skipped_step"] = 1.0
+                metrics["opd/skipped_step"] = 1.0
 
             metrics["perf/max_memory_allocated_gb"] = torch.cuda.max_memory_allocated() / (1024**3)
             output = DataProto(meta_info={"metrics": metrics})
@@ -223,7 +223,7 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
 
         return output
 
-    def _opsd_training_step(
+    def _opd_training_step(
         self,
         micro_batches: list,
         teacher_logits_cache: list,
@@ -235,7 +235,7 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
         batch_size: int = 0,
         use_sample_weights: bool = False,
     ) -> dict:
-        """Core OPSD training with pre-computed teacher logits.
+        """Core OPD training with pre-computed teacher logits.
 
         Teacher logits are already cached on CPU from phase 1. This phase only
         has the student (actor) model + optimizer on GPU, avoiding OOM from
@@ -264,7 +264,7 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
         def _mem2(tag):
             alloc = torch.cuda.memory_allocated() / (1024**3)
             reserved = torch.cuda.memory_reserved() / (1024**3)
-            logger.info("[OPSD-MEM] %s: allocated=%.2f GB, reserved=%.2f GB", tag, alloc, reserved)
+            logger.info("[OPD-MEM] %s: allocated=%.2f GB, reserved=%.2f GB", tag, alloc, reserved)
 
         for i, (micro_batch, (cached_teacher_logits, is_valid)) in enumerate(
             zip(micro_batches, teacher_logits_cache, strict=True)
@@ -291,14 +291,14 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
 
             _mem2(f"phase2-mb{i}-before-teacher-to-gpu")
             teacher_logits = cached_teacher_logits.to(device)
-            logger.info("[OPSD-MEM] phase2 micro_batch[%d]: student_ids shape=%s, cached_teacher shape=%s",
+            logger.info("[OPD-MEM] phase2 micro_batch[%d]: student_ids shape=%s, cached_teacher shape=%s",
                         i, list(s_input_ids.shape), list(teacher_logits.shape))
             _mem2(f"phase2-mb{i}-after-teacher-to-gpu")
 
             student_logits = forward_fn(
                 self.actor_module_fsdp, s_input_ids, s_attention_mask, s_position_ids, s_loss_mask
             )
-            logger.info("[OPSD-MEM] phase2 micro_batch[%d]: student_logits shape=%s", i, list(student_logits.shape))
+            logger.info("[OPD-MEM] phase2 micro_batch[%d]: student_logits shape=%s", i, list(student_logits.shape))
             _mem2(f"phase2-mb{i}-after-student-fwd")
 
             if teacher_logits.shape[0] != student_logits.shape[0]:
@@ -368,12 +368,12 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
         if total_tokens == 0:
             self.actor_optimizer.zero_grad()
             return {
-                "opsd/loss": 0.0,
-                "opsd/entropy": 0.0,
-                "opsd/grad_norm": 0.0,
-                "opsd/num_tokens": 0,
-                "opsd/batch_size": int(batch_size),
-                "opsd/valid_rows": int(total_rows),
+                "opd/loss": 0.0,
+                "opd/entropy": 0.0,
+                "opd/grad_norm": 0.0,
+                "opd/num_tokens": 0,
+                "opd/batch_size": int(batch_size),
+                "opd/valid_rows": int(total_rows),
             }
 
         # Gradient clipping and optimizer step
@@ -395,12 +395,12 @@ class OPSDWorker(AsyncActorRolloutRefWorker):
             self.actor_optimizer.zero_grad()
 
         return {
-            "opsd/loss": total_loss / max(1, active_micro_batches),
-            "opsd/entropy": total_entropy_sum / max(1, total_tokens),
-            "opsd/grad_norm": grad_norm.detach().item(),
-            "opsd/num_tokens": int(total_tokens),
-            "opsd/batch_size": batch_size,
-            "opsd/valid_rows": int(total_rows),
+            "opd/loss": total_loss / max(1, active_micro_batches),
+            "opd/entropy": total_entropy_sum / max(1, total_tokens),
+            "opd/grad_norm": grad_norm.detach().item(),
+            "opd/num_tokens": int(total_tokens),
+            "opd/batch_size": batch_size,
+            "opd/valid_rows": int(total_rows),
         }
 
     def _extract_response_target_ids_padded(self, input_ids, loss_mask):
