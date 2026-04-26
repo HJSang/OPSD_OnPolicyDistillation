@@ -9,11 +9,11 @@ This repository is related to the following papers:
 - [TIP: Token Importance in On-Policy Distillation](https://arxiv.org/abs/2604.14084) ([PDF](https://arxiv.org/pdf/2604.14084))
   - Studies which token positions carry the most useful learning signal in OPD.
   - Introduces the TIP view of token importance based on student entropy and teacher-student divergence.
-  - The paper explicitly states that its experiments extend this repository.
+
 - [PACED: Distillation and On-Policy Self-Distillation at the Frontier of Student Competence](https://arxiv.org/abs/2603.11178) ([PDF](https://arxiv.org/pdf/2603.11178))
   - Studies sample importance for distillation and self-distillation at the problem level.
   - Proposes weighting problems by student empirical pass rate, emphasizing the frontier of student competence.
-  - Closely related to the repo roadmap for OPD and planned OPSD support.
+  - A two-stage forward-then-reverse KL schedule leads to the best performance.
 
 > **TODO:** Add OPSD (On-Policy Self-Distillation) support -- same model as teacher and student, where the teacher sees ground truth context. Currently only OPD (separate teacher model) is included.
 
