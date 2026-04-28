@@ -246,12 +246,12 @@ def main():
     print("Processing Validation Benchmarks")
     print("=" * 80)
 
-    aime24_path = os.path.join(data_dir, "aime24", "test-00000-of-00001.parquet")
+    aime24_path = os.path.join(data_dir, "AIME_2024", "aime_2024_problems.parquet")
     aime24_dataset = process_aime24(aime24_path)
     aime24_out = os.path.join(output_dir, "val_aime24.parquet")
     aime24_dataset.to_parquet(aime24_out)
 
-    aime25_path = os.path.join(data_dir, "aime25", "test.jsonl")
+    aime25_path = os.path.join(data_dir, "AIME_2025", "train.jsonl")
     aime25_dataset = process_aime25(aime25_path)
     aime25_out = os.path.join(output_dir, "val_aime25.parquet")
     aime25_dataset.to_parquet(aime25_out)
