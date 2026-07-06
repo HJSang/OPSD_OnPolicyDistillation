@@ -1,0 +1,18 @@
+{
+  "_comment": "Soft-token compressor variant: SIMPLE = uniform gated pooling over the whole input (baseline / current prototype).",
+  "name": "simple_f8",
+  "mode": "simple",
+  "decoder": "qwen2.5-7b",
+  "factor": 8,
+  "enc_layers": 2,
+  "train_encoder": true,
+  "fkl_weight": 1.0,
+  "steps": 1000,
+  "n_chunks": 400,
+  "max_len": 256,
+  "batch_size": 4,
+  "lr": 1e-4,
+  "dataset": "locomo",
+  "data": "data/locomo10.json",
+  "save": "softtoken/ckpt_simple_f8.pt"
+}

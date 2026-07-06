@@ -1,0 +1,6 @@
+# Zero-training validation for VTC vs text compression on conversational memory
+transformers>=4.49.0
+torch
+pillow
+qwen-vl-utils
+accelerate
