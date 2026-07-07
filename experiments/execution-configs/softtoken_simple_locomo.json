@@ -1,6 +1,0 @@
-{
-    "inputs": {
-        "run_name": "softtoken_simple_locomo500",
-        "sweep_cmd": "for F in 4 8 16; do python -u softtoken/train.py --config configs/simple.json --factor $F --dataset ultrachat --data data/ultrachat_train.json --save softtoken/ckpt_simple_f${F}_zs.pt; python -u softtoken/eval_softtoken.py --config configs/simple.json --factor $F --ckpt softtoken/ckpt_simple_f${F}_zs.pt --dataset locomo --data data/locomo10.json --limit 500 --shuffle --seed 0 --out results_locomo500_simple_f${F}.json; done"
-    }
-}

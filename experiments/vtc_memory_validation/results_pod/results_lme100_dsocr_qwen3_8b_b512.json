@@ -2,8 +2,8 @@
   "args": {
     "dataset": "longmemeval",
     "data_path": "data/longmemeval_oracle.json",
-    "conditions": "raw,summary",
-    "text_model": "qwen2.5-7b",
+    "conditions": "dsocr",
+    "text_model": "qwen3-8b",
     "vl_model": "qwen2.5-vl-7b",
     "model_config": null,
     "limit": 100,
@@ -14,8 +14,8 @@
     "font_size": 16,
     "font_path": null,
     "vl_max_pixels": null,
-    "dsocr_cache": "dsocr_cache.json",
-    "out": "results_lme100_raw_summary.json"
+    "dsocr_cache": "dsocr_cache_lme100_b512.json",
+    "out": "results_lme100_dsocr_qwen3_8b_b512.json"
   },
   "records": [
     {
@@ -25,11 +25,10 @@
       "question": "Who did I meet with during the lunch last Tuesday?",
       "gold": "Emma",
       "full_tokens": 3650,
-      "raw_pred": "Emma, a freelance writer.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 436
+      "dsocr_pred": "{\n  \"answer\": \"Emma\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 1,
@@ -38,11 +37,10 @@
       "question": "What is the total number of lunch meals I got from the chicken fajitas and lentil soup?",
       "gold": "8 meals",
       "full_tokens": 6349,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 865
+      "dsocr_pred": "{\n  \"total_lunch_meals\": 3\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 2,
@@ -51,11 +49,10 @@
       "question": "What day of the week do I take a cocktail-making class?",
       "gold": "Friday",
       "full_tokens": 5564,
-      "raw_pred": "Friday",
-      "raw_ok": true,
-      "summary_pred": "Friday.",
-      "summary_ok": true,
-      "summary_tokens": 384
+      "dsocr_pred": "{\n  \"day\": \"Friday\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 512,
+      "dsocr_pages": 8
     },
     {
       "i": 3,
@@ -64,11 +61,10 @@
       "question": "For my daily commute, how much more expensive was the taxi ride compared to the train fare?",
       "gold": "$6",
       "full_tokens": 4793,
-      "raw_pred": "The daily train fare is estimated to be approximately $9.14, while the taxi ride cost $12. Therefore, the taxi ride was $2.86 more expensive than the estimated daily train fare.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 423
+      "dsocr_pred": "{\n  \"taxiCost\": 12,\n  \"trainCost\": 0.8,\n  \"difference\": 11.2\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 512,
+      "dsocr_pages": 8
     },
     {
       "i": 4,
@@ -77,11 +73,10 @@
       "question": "What is the order of the three trips I took in the past three months, from earliest to latest?",
       "gold": "I went on a day hike to Muir Woods National Monument with my family, then I went on a road trip with friends to Big Sur and Monterey, and finally I started my solo camping trip to Yosemite National Park.",
       "full_tokens": 9029,
-      "raw_pred": "1. Summer trip to the Eastern Sierra (2023/03/10)\n2. Road trip to Big Sur and Monterey (2023/04/20)\n3. Solo camping trip to Yosemite National Park (2023/05/15)",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 583
+      "dsocr_pred": "{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"Eastern Sierra\"\n  ]\n{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"Eastern Sierra\"\n  ]\n{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"Eastern Sierra\"\n  ]\n{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"Eastern Sierra\"\n  ]\n{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"Eastern Sierra\"\n  ]\n{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"Eastern Sierra\"\n  ]\n{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"Eastern Sierra\"\n  ]\n{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"Eastern Sierra\"\n  ]\n{\n  \"trips\": [\n    \"Muir Woods National Monument\",\n    \"Big Sur and Monterey\",\n    \"",
+      "dsocr_ok": true,
+      "dsocr_tokens": 896,
+      "dsocr_pages": 14
     },
     {
       "i": 5,
@@ -90,11 +85,10 @@
       "question": "What time do I wake up on Tuesdays and Thursdays?",
       "gold": "6:45 AM",
       "full_tokens": 6777,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 309
+      "dsocr_pred": "{\n  \"wakeUpTime\": \"7:00 AM\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 6,
@@ -103,11 +97,10 @@
       "question": "Can you suggest some accessories that would complement my current photography setup?",
       "gold": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
       "full_tokens": 4625,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 889
+      "dsocr_pred": "{\n  \"camera_bags\": [\n    {\n      \"name\": \"Think Tank Photo 20\\\" Camera Bag\",\n      \"description\": \"A durable and spacious camera bag designed for Sony cameras, offering ample storage and organization for lenses, accessories, and gear.\",\n      \"price\": \"$120\",\n      \"features\": [\"Durable materials\", \"Ample storage\", \"Organization compartments\"]\n    },\n    {\n      \"name\": \"Lowepro ProTactic 550 AW\",\n      \"description\": \"A weather-resistant camera bag with a modular design, ideal for protecting your Sony camera and lenses in various conditions.\",\n      \"price\": \"$150\",\n      \"features\": [\"Weather resistance\", \"Modular design\", \"Multiple compartments\"]\n    },\n    {\n      \"name\": \"Peak Design Everyday Backpack\",\n      \"description\": \"A lightweight and versatile backpack with a dedicated camera compartment, perfect for on-the-go photography.\",\n      \"price\": \"$130\",\n      \"features\": [\"Lightweight design\", \"Dedicated camera compartment\", \"Comfortable straps\"]\n    },\n    {\n      \"name\": \"Gitzo Traveler 2 Backpack\",\n      \"description\": \"A compact and lightweight backpack with a built-in camera compartment",
+      "dsocr_ok": false,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 7,
@@ -116,11 +109,10 @@
       "question": "When did I book the Airbnb in Sacramento?",
       "gold": "The information provided is not enough. You only mentioned booking Airbnb in San Francisco.",
       "full_tokens": 5985,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 695
+      "dsocr_pred": "{\n  \"booking_date\": \"2023/05/25\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 576,
+      "dsocr_pages": 9
     },
     {
       "i": 8,
@@ -129,11 +121,10 @@
       "question": "How many days passed between the day I started watering my herb garden and the day I harvested my first batch of fresh herbs?",
       "gold": "24 days. 25 days (including the last day) is also acceptable.",
       "full_tokens": 7036,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 374
+      "dsocr_pred": "{\n  \"days_passed\": 15\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 832,
+      "dsocr_pages": 13
     },
     {
       "i": 9,
@@ -142,11 +133,10 @@
       "question": "How many rare items do I have in total?",
       "gold": "99",
       "full_tokens": 13378,
-      "raw_pred": "Based on the conversation, you have a total of 82 rare items:\n\n- 5 rare books\n- 57 rare records\n- 12 rare figurines\n- 25 rare coins\n- 1 antique vase",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 553
+      "dsocr_pred": "{\n  \"total_rare_items\": 57\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 1472,
+      "dsocr_pages": 23
     },
     {
       "i": 10,
@@ -155,11 +145,10 @@
       "question": "I'm planning to visit Bandung again and I was wondering if you could remind me of the name of that restaurant in Cihampelas Walk that serves a great Nasi Goreng?",
       "gold": "Miss Bee Providore",
       "full_tokens": 1650,
-      "raw_pred": "Miss Bee Providore.",
-      "raw_ok": true,
-      "summary_pred": "Miss Bee Providore.",
-      "summary_ok": true,
-      "summary_tokens": 516
+      "dsocr_pred": "{\n  \"restaurant\": \"Miss Bee Producer\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 192,
+      "dsocr_pages": 3
     },
     {
       "i": 11,
@@ -168,11 +157,10 @@
       "question": "How long have I been collecting vintage cameras?",
       "gold": "three months",
       "full_tokens": 3870,
-      "raw_pred": "Three months.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 400
+      "dsocr_pred": "{\n  \"duration\": \"3 months\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 12,
@@ -181,11 +169,10 @@
       "question": "How many fish are there in my 30-gallon tank?",
       "gold": "The information provided is not enough. You did not mention that you have a 30-gallon tank.",
       "full_tokens": 6450,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 622
+      "dsocr_pred": "{\n  \"fish_count\": 10\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 13,
@@ -194,11 +181,10 @@
       "question": "What brand of BBQ sauce am I currently obsessed with?",
       "gold": "Kansas City Masterpiece",
       "full_tokens": 7524,
-      "raw_pred": "Kansas City Masterpiece BBQ sauce",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 429
+      "dsocr_pred": "{\n  \"current_obsession\": \"Kansas City Masterpiece BBQ sauce\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 768,
+      "dsocr_pages": 12
     },
     {
       "i": 14,
@@ -207,11 +193,10 @@
       "question": "How many fun runs did I miss in March due to work commitments?",
       "gold": "2",
       "full_tokens": 5785,
-      "raw_pred": "You missed one fun run in March due to work commitments.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 208
+      "dsocr_pred": "{\n  \"answer\": \"You missed one fun run in March, the 5K fun run on March 26th.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 576,
+      "dsocr_pages": 9
     },
     {
       "i": 15,
@@ -220,11 +205,10 @@
       "question": "How many amateur comedians did I watch perform at the open mic night?",
       "gold": "10",
       "full_tokens": 3607,
-      "raw_pred": "10",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 274
+      "dsocr_pred": "{\n  \"answer\": \"10\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 320,
+      "dsocr_pages": 5
     },
     {
       "i": 16,
@@ -233,11 +217,10 @@
       "question": "Where did I attend the Imagine Dragons concert?",
       "gold": "Xfinity Center",
       "full_tokens": 1806,
-      "raw_pred": "Xfinity Center",
-      "raw_ok": true,
-      "summary_pred": "Xfinity Center",
-      "summary_ok": true,
-      "summary_tokens": 349
+      "dsocr_pred": "{\n  \"location\": \"Xfinity Center\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 192,
+      "dsocr_pages": 3
     },
     {
       "i": 17,
@@ -246,11 +229,10 @@
       "question": "How long had I been a member of 'Book Lovers Unite' when I attended the meetup?",
       "gold": "Two weeks",
       "full_tokens": 6102,
-      "raw_pred": "Three weeks.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 296
+      "dsocr_pred": "{\n  \"duration\": \"Not mentioned\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 18,
@@ -259,11 +241,10 @@
       "question": "How many weeks ago did I start using the cashback app 'Ibotta'?",
       "gold": "3 weeks ago",
       "full_tokens": 2834,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 602
+      "dsocr_pred": "{\n  \"weeks\": 1\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 384,
+      "dsocr_pages": 6
     },
     {
       "i": 19,
@@ -272,11 +253,10 @@
       "question": "Which book did I finish reading first, 'The Hate U Give' or 'The Nightingale'?",
       "gold": "'The Hate U Give'",
       "full_tokens": 7468,
-      "raw_pred": "The Hate U Give",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 473
+      "dsocr_pred": "{\n  \"answer\": \"You finished 'The Hate U Give' first, as it was the book you had to rush to finish for your book club meeting two weeks ago.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 20,
@@ -285,11 +265,10 @@
       "question": "How many new postcards have I added to my collection since I started collecting again?",
       "gold": "25",
       "full_tokens": 6482,
-      "raw_pred": "You've added 25 new postcards to your collection since you started collecting again.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 868
+      "dsocr_pred": "{\n  \"totalNewPostcards\": 17\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 21,
@@ -298,11 +277,10 @@
       "question": "Where did I buy my new tennis racket from?",
       "gold": "the sports store downtown",
       "full_tokens": 2948,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 357
+      "dsocr_pred": "{\n  \"answer\": \"You bought your new tennis racket from a sports store downtown.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 320,
+      "dsocr_pages": 5
     },
     {
       "i": 22,
@@ -311,11 +289,10 @@
       "question": "I'm going back to our previous conversation about the grant aim page on molecular subtypes and endometrial cancer. Can you remind me what were the three objectives we outlined for the project?",
       "gold": "The three objectives were: 1) to identify molecular subtypes of endometrial cancer, 2) to investigate their clinical and biological significance, and 3) to develop biomarkers for early detection and prognosis.",
       "full_tokens": 414,
-      "raw_pred": "1. To identify molecular subtypes of endometrial cancer using a combination of genomic and transcriptomic approaches.\n2. To investigate the clinical and biological significance of the identified molecular subtypes, including their association with patient outcomes and response to therapy.\n3. To develop biomarkers for the early detection and prognosis of endometrial cancer based on the identified molecular subtypes.",
-      "raw_ok": true,
-      "summary_pred": "1. Identify molecular subtypes using genomic and transcriptomic approaches.\n2. Investigate clinical and biological significance, including patient outcomes and therapy response.\n3. Develop biomarkers for early detection and prognosis.",
-      "summary_ok": true,
-      "summary_tokens": 195
+      "dsocr_pred": "{\n  \"objectives\": [\n    \"To identify molecular subtypes of endometrial cancer using a combination of genomic and transcriptomic approaches.\",\n    \"To investigate the clinical and biological significance of the identified molecular subtypes, including their association with patient outcomes and response to therapy.\",\n    \"To develop biomarkers for the early detection and prognosis of endometrial cancer based on the identified molecular subtypes.\"\n  ]\n{\n  \"objectives\": [\n    \"To identify molecular subtypes of endometrial cancer using a combination of genomic and transcriptomic approaches.\",\n    \"To investigate the clinical and biological significance of the identified molecular subtypes, including their association with patient outcomes and response to therapy.\",\n    \"To develop biomarkers for the early detection and prognosis of endometrial cancer based on the identified molecular subtypes.\"\n  ]\n{\n  \"objectives\": [\n    \"To identify molecular subtypes of endometrial cancer using a combination of genomic and transcriptomic approaches.\",\n    \"To investigate the clinical and biological significance of the identified molecular subtypes, including their association with patient outcomes and response to therapy.\",\n    \"To develop biomarkers for the early detection and prognosis of endometrial cancer based on the identified molecular subtypes.\"\n  ]\n{\n  \"objectives\": [",
+      "dsocr_ok": true,
+      "dsocr_tokens": 64,
+      "dsocr_pages": 1
     },
     {
       "i": 23,
@@ -324,11 +301,10 @@
       "question": "How many months before my anniversary did Rachel get engaged?",
       "gold": "2",
       "full_tokens": 8997,
-      "raw_pred": "Rachel got engaged in May, and your anniversary is in July. So, Rachel got engaged approximately 2 months before your anniversary.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 548
+      "dsocr_pred": "{\n  \"months\": 1\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 832,
+      "dsocr_pages": 13
     },
     {
       "i": 24,
@@ -337,11 +313,10 @@
       "question": "I was thinking back to our previous conversation about the Radiation Amplified zombie, and I was wondering if you remembered what we finally decided to name it?",
       "gold": "Fissionator.",
       "full_tokens": 2025,
-      "raw_pred": "Fissionator",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 183
+      "dsocr_pred": "{\n  \"name\": \"Fissionator\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 192,
+      "dsocr_pages": 3
     },
     {
       "i": 25,
@@ -350,11 +325,10 @@
       "question": "I was looking back at our previous conversation about Caribbean dishes and I was wondering, what was the name of that Jamaican dish you recommended I try with snapper that has fruit in it?",
       "gold": "Grilled Snapper with Mango Salsa",
       "full_tokens": 1025,
-      "raw_pred": "Grilled Snapper with Mango Salsa",
-      "raw_ok": true,
-      "summary_pred": "Grilled Snapper with Mango Salsa",
-      "summary_ok": true,
-      "summary_tokens": 241
+      "dsocr_pred": "{\n  \"answer\": \"Fish and Fungi\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 128,
+      "dsocr_pages": 2
     },
     {
       "i": 26,
@@ -363,11 +337,10 @@
       "question": "What is the total amount I spent on gifts for my coworker and brother?",
       "gold": "$200",
       "full_tokens": 3663,
-      "raw_pred": "You spent a total of $175 on gifts for your coworker and brother: $100 for your brother's graduation gift and $75 for your coworker's baby shower gift.",
-      "raw_ok": false,
-      "summary_pred": "$200.",
-      "summary_ok": true,
-      "summary_tokens": 204
+      "dsocr_pred": "{\n  \"total\": 295\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 27,
@@ -376,11 +349,10 @@
       "question": "What is the artist that I started to listen to last Friday?",
       "gold": "a bluegrass band that features a banjo player",
       "full_tokens": 7026,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 1050
+      "dsocr_pred": "{\n  \"artist\": \"The Stanley Brothers\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 768,
+      "dsocr_pages": 12
     },
     {
       "i": 28,
@@ -389,11 +361,10 @@
       "question": "How much did I earn at the Downtown Farmers Market on my most recent visit?",
       "gold": "$420",
       "full_tokens": 4492,
-      "raw_pred": "You earned $420 at the Downtown Farmers Market on your most recent visit.",
-      "raw_ok": true,
-      "summary_pred": "$420",
-      "summary_ok": true,
-      "summary_tokens": 338
+      "dsocr_pred": "{\n  \"earnings\": 420\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 29,
@@ -402,11 +373,10 @@
       "question": "How many bikes did I service or plan to service in March?",
       "gold": "2",
       "full_tokens": 6730,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "2",
-      "summary_ok": true,
-      "summary_tokens": 407
+      "dsocr_pred": "{\n  \"bikesServiced\": 1\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 30,
@@ -415,11 +385,10 @@
       "question": "Where do I currently keep my old sneakers?",
       "gold": "in a shoe rack in my closet",
       "full_tokens": 5629,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 184
+      "dsocr_pred": "{\n  \"location\": \"under my bed\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 576,
+      "dsocr_pages": 9
     },
     {
       "i": 31,
@@ -428,11 +397,10 @@
       "question": "How many autographed football have I added to my collection in the first three months of collection?",
       "gold": "The information provided is not enough. You mentioned collecting autographed baseball but not football.",
       "full_tokens": 5495,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 504
+      "dsocr_pred": "{\n  \"count\": 15\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 576,
+      "dsocr_pages": 9
     },
     {
       "i": 32,
@@ -441,11 +409,10 @@
       "question": "Which event happened first, my participation in the #PlankChallenge or my post about vegan chili recipe?",
       "gold": "You posted a recipe for vegan chili on Instagram using the hashtag #FoodieAdventures first.",
       "full_tokens": 5790,
-      "raw_pred": "Your participation in the #PlankChallenge happened first. You mentioned participating in the #PlankChallenge on Wednesday, and your post about the vegan chili recipe was on Friday.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 808
+      "dsocr_pred": "{\n  \"answer\": \"The user participated in the #PlankChallenge first, as mentioned in their query about workout routines, before sharing the vegan chili recipe on Instagram.\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 33,
@@ -454,11 +421,10 @@
       "question": "How many model kits have I worked on or bought?",
       "gold": "I have worked on or bought five model kits. The scales of the models are: Revell F-15 Eagle (scale not mentioned), Tamiya 1/48 scale Spitfire Mk.V, 1/16 scale German Tiger I tank, 1/72 scale B-29 bomber, and 1/24 scale '69 Camaro.",
       "full_tokens": 16093,
-      "raw_pred": "Based on the conversation, you have worked on or bought three model kits:\n\n1. A 1/72 scale B-29 bomber model kit.\n2. A 1/48 scale Spitfire Mk.V model kit (recently finished).\n3. A 1/24 scale '69 Camaro model kit (bought at a model show).",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 494
+      "dsocr_pred": "{\n  \"kits\": [\n    \"Revell F-15 Eagle\",\n    \"Tammy 1/48 scale Spitfire Mk.V\",\n    \"1/72 scale B-29 bomber\",\n    \"1/24 scale B-60 Camaro\"\n  ]\n{\n  \"count\": 4\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 1536,
+      "dsocr_pages": 24
     },
     {
       "i": 34,
@@ -467,11 +433,10 @@
       "question": "How old was I when Alex was born?",
       "gold": "11",
       "full_tokens": 5976,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 515
+      "dsocr_pred": "{\n  \"ageDifference\": 25\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 35,
@@ -480,11 +445,10 @@
       "question": "What is the difference in price between my luxury boots and the similar pair found at the budget store?",
       "gold": "$750",
       "full_tokens": 6639,
-      "raw_pred": "The luxury boots cost $800, while the similar pair found at the budget store costs $50, resulting in a price difference of $750.",
-      "raw_ok": true,
-      "summary_pred": "The luxury boots cost between $200-$250, while the budget store options range from $50-$100. Therefore, the difference in price is at least $150 and up to $200.",
-      "summary_ok": false,
-      "summary_tokens": 413
+      "dsocr_pred": "{\n  \"difference\": \"$800\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 576,
+      "dsocr_pages": 9
     },
     {
       "i": 36,
@@ -493,11 +457,10 @@
       "question": "What was the airline that I flied with on Valentine's day?",
       "gold": "American Airlines",
       "full_tokens": 15415,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 1010
+      "dsocr_pred": "{\n  \"airline\": \"American Airlines\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 1600,
+      "dsocr_pages": 25
     },
     {
       "i": 37,
@@ -506,11 +469,10 @@
       "question": "Which project did I start first, the Ferrari model or the Porsche 991 Turbo S model?",
       "gold": "The information provided is not enough. You did not mention starting the Porsche 991 Turbo S model.",
       "full_tokens": 6806,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 959
+      "dsocr_pred": "{\n  \"answer\": \"The user started working on the Ferrari 280 GT model first, as mentioned in their initial message about working on it for weeks and seeking tips on paint finish. There is no mention of a Porsche 991 Turbo S model in the conversation.\"\n{\n  \"answer\": \"The user started working on the Ferrari 280 GT model first, as mentioned in their initial message about working on it for weeks and seeking tips on paint finish. There is no mention of a Porsche 991 Turbo S model in the conversation.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 38,
@@ -519,11 +481,10 @@
       "question": "How many days passed between the day I repotted the previous spider plant and the day I gave my neighbor, Mrs. Johnson, a few cuttings from my spider plant?",
       "gold": "14 days. 15 days (including the last day) is also acceptable.",
       "full_tokens": 6407,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 219
+      "dsocr_pred": "{\n  \"daysPassed\": 1\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 39,
@@ -532,11 +493,10 @@
       "question": "How many weeks did it take me to watch all the Marvel Cinematic Universe movies and the main Star Wars films?",
       "gold": "3.5 weeks",
       "full_tokens": 6390,
-      "raw_pred": "It took you about two weeks to watch all the Marvel Cinematic Universe movies, and a week and a half to watch all the main Star Wars films.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 697
+      "dsocr_pred": "{\n  \"weeks\": 2\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 768,
+      "dsocr_pages": 12
     },
     {
       "i": 40,
@@ -545,11 +505,10 @@
       "question": "How much earlier do I wake up on Fridays compared to other weekdays?",
       "gold": "30 minutes",
       "full_tokens": 3282,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 948
+      "dsocr_pred": "{\n  \"wakeUpTimeDifference\": \"1 hour\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 41,
@@ -558,11 +517,10 @@
       "question": "How many projects have I been working on simultaneously, excluding my thesis?",
       "gold": "2",
       "full_tokens": 10775,
-      "raw_pred": "3",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 253
+      "dsocr_pred": "{\n  \"count\": 2\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 1152,
+      "dsocr_pages": 18
     },
     {
       "i": 42,
@@ -571,11 +529,10 @@
       "question": "How many times have I met up with Alex from Germany?",
       "gold": "We've met up twice.",
       "full_tokens": 4814,
-      "raw_pred": "You've met up with Alex from Germany twice already.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 216
+      "dsocr_pred": "{\n  \"meetings\": 2\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 43,
@@ -584,11 +541,10 @@
       "question": "How many antique items did I inherit or acquire from my family members?",
       "gold": "5",
       "full_tokens": 6492,
-      "raw_pred": "Three. You inherited or acquired an antique tea set from your cousin Rachel, a vintage typewriter that belonged to your dad, and an antique music box from your great-aunt.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 337
+      "dsocr_pred": "{\n  \"inherited_items\": [\n    \"Grandmother's vintage diamond necklace\",\n    \"Great aunt's antique music box\",\n    \"Mom's depression-era glasses\",\n    \"Cousin Rachel's antique tea set\",\n    \"Dad's vintage typewriter\"\n  ]\n{\n  \"total\": 5\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 44,
@@ -597,11 +553,10 @@
       "question": "What certification did I complete last month?",
       "gold": "Data Science",
       "full_tokens": 3913,
-      "raw_pred": "Certified Data Scientist",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 467
+      "dsocr_pred": "{\n  \"certification\": \"Data Science\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 45,
@@ -610,11 +565,10 @@
       "question": "Is my mom using the same grocery list method as me?",
       "gold": "Yes.",
       "full_tokens": 5111,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 244
+      "dsocr_pred": "{\n  \"answer\": \"Yes, your mom is using the same grocery list app as you, which allows you both to share and collaborate on shopping lists.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 576,
+      "dsocr_pages": 9
     },
     {
       "i": 46,
@@ -623,11 +577,10 @@
       "question": "How many days ago did I participate in the 5K charity run?",
       "gold": "7 days ago. 8 days (including the last day) is also acceptable.",
       "full_tokens": 2901,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 242
+      "dsocr_pred": "{\n  \"daysSince5K\": 0\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 320,
+      "dsocr_pages": 5
     },
     {
       "i": 47,
@@ -636,11 +589,10 @@
       "question": "What should I serve for dinner this weekend with my homegrown ingredients?",
       "gold": "The user would prefer dinner suggestions that incorporate their homegrown cherry tomatoes and herbs like basil and mint, highlighting recipes that showcase their garden produce. They might not prefer suggestions that do not utilize these specific ingredients or do not emphasize the use of homegrown elements.",
       "full_tokens": 4041,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 220
+      "dsocr_pred": "{\n  \"dinner_ideas\": [\n    \"Basil and Mint Infused Water\",\n    \"Herby Lemonade\",\n    \"Basil and Mint Chicharrones\",\n    \"Thai Style Basil and Mint Stir-Fry\",\n    \"Minty Yogurt Sauce\",\n    \"Minty Fresh Salad\",\n    \"Grilled Lamb with Mint Sauce\",\n    \"Mint Chutney\",\n    \"Basil and Lemon Spaghetti\",\n    \"Pesto Pasta\",\n    \"Caprese Salad\",\n    \"Basil Chicken Stir-Fry\"\n  ]\n{\n  \"dinner_ideas\": [\n    \"Basil and Mint Infused Water\",\n    \"Herby Lemonade\",\n    \"Basil and Mint Chicharrones\",\n    \"Thai Style Basil and Mint Stir-Fry\",\n    \"Minty Yogurt Sauce\",\n    \"Minty Fresh Salad\",\n    \"Grilled Lamb with Mint Sauce\",\n    \"Mint Chutney\",\n    \"Basil and Lemon Spaghetti\",\n    \"Pesto Pasta\",\n    \"Caprese Salad\",\n    \"Basil Chicken Stir-Fry\"\n  ]\n{\n  \"dinner_ideas\": [\n    \"Basil and Mint Infused Water\",\n    \"Herby Lemonade\",\n    \"",
+      "dsocr_ok": false,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 48,
@@ -649,11 +601,10 @@
       "question": "I'm going back to our previous conversation about music theory. You mentioned some online resources for learning music theory. Can you remind me of the website you recommended for free lessons and exercises?",
       "gold": "MusicTheory.net",
       "full_tokens": 680,
-      "raw_pred": "MusicTheory.net",
-      "raw_ok": true,
-      "summary_pred": "MusicTheory.net",
-      "summary_ok": true,
-      "summary_tokens": 140
+      "dsocr_pred": "{\n  \"website\": \"Music Theory.net\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 128,
+      "dsocr_pages": 2
     },
     {
       "i": 49,
@@ -662,11 +613,10 @@
       "question": "I wanted to follow up on our previous conversation about mindfulness techniques. You mentioned some great resources for guided imagery exercises, can you remind me of the website that had free exercises like 'The Mountain Meditation' and 'The Body Scan Meditation'?",
       "gold": "Mindful.org.",
       "full_tokens": 990,
-      "raw_pred": "Mindful.org",
-      "raw_ok": true,
-      "summary_pred": "Mindful.org",
-      "summary_ok": true,
-      "summary_tokens": 225
+      "dsocr_pred": "{\n  \"website\": \"Mindfulness Exercises\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 128,
+      "dsocr_pages": 2
     },
     {
       "i": 50,
@@ -675,11 +625,10 @@
       "question": "How many times did I bake egg tarts in the past two weeks?",
       "gold": "The information provided is not enough. You did not mention baking egg tarts.",
       "full_tokens": 12385,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 375
+      "dsocr_pred": "{\n  \"count\": 0\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 1088,
+      "dsocr_pages": 17
     },
     {
       "i": 51,
@@ -688,11 +637,10 @@
       "question": "How many days had passed since I bought my Adidas running shoes when I realized one of the shoelaces on my old Converse sneakers had broken?",
       "gold": "14 days. 15 days (including the last day) is also acceptable.",
       "full_tokens": 5533,
-      "raw_pred": "14 days",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 256
+      "dsocr_pred": "{\n  \"days\": 14\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 576,
+      "dsocr_pages": 9
     },
     {
       "i": 52,
@@ -701,11 +649,10 @@
       "question": "Where does my sister Emily live?",
       "gold": "Denver",
       "full_tokens": 3270,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 243
+      "dsocr_pred": "{\n  \"Emily's Location\": \"Denver\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 320,
+      "dsocr_pages": 5
     },
     {
       "i": 53,
@@ -714,11 +661,10 @@
       "question": "How many hours of jogging and yoga did I do last week?",
       "gold": "0.5 hours",
       "full_tokens": 9329,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 889
+      "dsocr_pred": "{\n  \"jogging\": 30,\n  \"yoga\": 60\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 960,
+      "dsocr_pages": 15
     },
     {
       "i": 54,
@@ -727,11 +673,10 @@
       "question": "How many pages of 'A Short History of Nearly Everything' have I read so far?",
       "gold": "220",
       "full_tokens": 8383,
-      "raw_pred": "You have read up to page 220 of \"A Short History of Nearly Everything\".",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 809
+      "dsocr_pred": "{\n  \"pagesRead\": 220\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 896,
+      "dsocr_pages": 14
     },
     {
       "i": 55,
@@ -740,11 +685,10 @@
       "question": "How many free night's stays can I redeem at any Hilton property with my accumulated points?",
       "gold": "Two",
       "full_tokens": 6947,
-      "raw_pred": "The number of free night's stays you can redeem at any Hilton property with your accumulated points depends on the number of points you've accumulated and the category of the hotel. Hilton has a dynamic pricing system where the number of points required for a free night varies depending on the hotel, room type, and dates of stay. For a Category 5 hotel like the Hilton Lake Las Vegas Resort, you typically need around 40,000 points for a standard room reward night. However, without knowing the exact number of points you have, it's not possible to determine how many free nights you can redeem.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 1054
+      "dsocr_pred": "{\n  \"freeNights\": 2\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 56,
@@ -753,11 +697,10 @@
       "question": "What is the total amount of money I earned from selling my products at the markets?",
       "gold": "$495",
       "full_tokens": 10258,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 879
+      "dsocr_pred": "{\n  \"totalEarnings\": 345\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 1152,
+      "dsocr_pages": 18
     },
     {
       "i": 57,
@@ -766,11 +709,10 @@
       "question": "Which bike did I fixed or serviced the past weekend?",
       "gold": "road bike",
       "full_tokens": 6450,
-      "raw_pred": "mountain bike",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 194
+      "dsocr_pred": "{\n  \"bike\": \"Mountain bike\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 58,
@@ -779,11 +721,10 @@
       "question": "How many hours in total did I spend driving to my three road trip destinations combined?",
       "gold": "15 hours for getting to the three destinations (or 30 hours for the round trip)",
       "full_tokens": 9614,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 417
+      "dsocr_pred": "{\n  \"totalDrivingTime\": 50\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 1024,
+      "dsocr_pages": 16
     },
     {
       "i": 59,
@@ -792,11 +733,10 @@
       "question": "Where did I attend my cousin's wedding?",
       "gold": "The Grand Ballroom",
       "full_tokens": 2172,
-      "raw_pred": "Grand Ballroom",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 360
+      "dsocr_pred": "{\n  \"location\": \"a little girl\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 256,
+      "dsocr_pages": 4
     },
     {
       "i": 60,
@@ -805,11 +745,10 @@
       "question": "How much have I made from selling eggs this month?",
       "gold": "$120",
       "full_tokens": 6818,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 722
+      "dsocr_pred": "{\n  \"totalEggSales\": 40\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 832,
+      "dsocr_pages": 13
     },
     {
       "i": 61,
@@ -818,11 +757,10 @@
       "question": "How many bikes do I currently own?",
       "gold": "4",
       "full_tokens": 7043,
-      "raw_pred": "You currently own four bikes: your road bike, mountain bike, commuter bike, and a new hybrid bike.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 455
+      "dsocr_pred": "{\n  \"num_bikes\": 4\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 62,
@@ -831,11 +769,10 @@
       "question": "How many different doctors did I visit?",
       "gold": "I visited three different doctors: a primary care physician, an ENT specialist, and a dermatologist.",
       "full_tokens": 9862,
-      "raw_pred": "3",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 353
+      "dsocr_pred": "{\n  \"count\": 2\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 1024,
+      "dsocr_pages": 16
     },
     {
       "i": 63,
@@ -844,11 +781,10 @@
       "question": "I'm looking back at our previous conversation about the Bajimaya v Reward Homes Pty Ltd case. Can you remind me what year the construction of the house began?",
       "gold": "2014.",
       "full_tokens": 2048,
-      "raw_pred": "2014",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 98
+      "dsocr_pred": "{\n  \"construction_year\": 2014\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 256,
+      "dsocr_pages": 4
     },
     {
       "i": 64,
@@ -857,11 +793,10 @@
       "question": "Which event did I attend first, the 'Effective Time Management' workshop or the 'Data Analysis using Python' webinar?",
       "gold": "'Data Analysis using Python' webinar",
       "full_tokens": 6993,
-      "raw_pred": "The 'Data Analysis using Python' webinar was attended two months before the 'Effective Time Management' workshop, so the 'Effective Time Management' workshop was the second event attended.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 250
+      "dsocr_pred": "{\n  \"answer\": \"The 'Effective Time Management' workshop was attended first.\"\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 768,
+      "dsocr_pages": 12
     },
     {
       "i": 65,
@@ -870,11 +805,10 @@
       "question": "How many weeks have I been taking sculpting classes when I invested in my own set of sculpting tools?",
       "gold": "3",
       "full_tokens": 8382,
-      "raw_pred": "6 weeks",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 873
+      "dsocr_pred": "{\n  \"weeks\": 6\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 896,
+      "dsocr_pages": 14
     },
     {
       "i": 66,
@@ -883,11 +817,10 @@
       "question": "When did I submit my research paper on sentiment analysis?",
       "gold": "February 1st",
       "full_tokens": 5665,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 560
+      "dsocr_pred": "{\n  \"submission_date\": \"February 1st\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 67,
@@ -896,11 +829,10 @@
       "question": "Which event happened first, the road trip to the coast or the arrival of the new prime lens?",
       "gold": "The arrival of the new prime lens",
       "full_tokens": 6993,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 420
+      "dsocr_pred": "{\n  \"answer\": \"The arrival of the new prime lens happened first, as the user mentioned they got it a month ago and used it during the coastal trip.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 68,
@@ -909,11 +841,10 @@
       "question": "What are the two hobbies that led me to join online communities?",
       "gold": "photography and cooking",
       "full_tokens": 6390,
-      "raw_pred": "photography, cooking",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 257
+      "dsocr_pred": "{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"cooking\",\n    \"photography\"\n  ]\n{\n  \"hobbies\": [\n    \"",
+      "dsocr_ok": true,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 69,
@@ -922,11 +853,10 @@
       "question": "How many sessions of the bereavement support group did I attend?",
       "gold": "five",
       "full_tokens": 7176,
-      "raw_pred": "You attended five sessions of the bereavement support group.",
-      "raw_ok": true,
-      "summary_pred": "Three sessions.",
-      "summary_ok": false,
-      "summary_tokens": 685
+      "dsocr_pred": "{\n  \"sessions_attended\": 5\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 70,
@@ -935,11 +865,10 @@
       "question": "What did my dad gave me as a birthday gift?",
       "gold": "You did not mention this information. You mentioned receiving a birthday gift from your sister, but not your dad.",
       "full_tokens": 2376,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 90
+      "dsocr_pred": "{\n  \"answer\": \"NOT MENTIONED\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 256,
+      "dsocr_pages": 4
     },
     {
       "i": 71,
@@ -948,11 +877,10 @@
       "question": "Did I finish reading 'The Nightingale' by Kristin Hannah?",
       "gold": "Yes",
       "full_tokens": 5220,
-      "raw_pred": "Yes, you mentioned finishing \"The Nightingale\" by Kristin Hannah recently.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 388
+      "dsocr_pred": "{\n  \"status\": \"completed\",\n  \"message\": \"Yes, you have finished reading 'The Nightingale' by Kristin Hannah.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 512,
+      "dsocr_pages": 8
     },
     {
       "i": 72,
@@ -961,11 +889,10 @@
       "question": "Where am I planning to stay for my birthday trip to Hawaii?",
       "gold": "Oahu",
       "full_tokens": 6567,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 266
+      "dsocr_pred": "{\n  \"location\": \"Oahu\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 73,
@@ -974,11 +901,10 @@
       "question": "Who did I go with to the music event last Saturday?",
       "gold": "my parents",
       "full_tokens": 16672,
-      "raw_pred": "You went with your parents to the music event last Saturday, specifically to the concert featuring Queen with Adam Lambert at the Prudential Center in Newark, NJ.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 503
+      "dsocr_pred": "{\n  \"response\": \"You went with your parents to the music event last Saturday.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 1664,
+      "dsocr_pages": 26
     },
     {
       "i": 74,
@@ -987,11 +913,10 @@
       "question": "I was going through our previous chat. Can you remind me of the name of the last venue you recommended in the list of popular venues in Portland for indie music shows?",
       "gold": "Revolution Hall",
       "full_tokens": 640,
-      "raw_pred": "Revolution Hall",
-      "raw_ok": true,
-      "summary_pred": "Holocene",
-      "summary_ok": false,
-      "summary_tokens": 99
+      "dsocr_pred": "{\n  \"lastVenue\": \"Revolution Hall\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 128,
+      "dsocr_pages": 2
     },
     {
       "i": 75,
@@ -1000,11 +925,10 @@
       "question": "How much time do I dedicate to practicing violin every day?",
       "gold": "You did not mention this information. You mentioned practing guitar everyday, but not violin.",
       "full_tokens": 3941,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 208
+      "dsocr_pred": "{\n  \"answer\": \"NOT MENTIONED\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 76,
@@ -1013,11 +937,10 @@
       "question": "How many hours did I spend watching documentaries on Netflix last month?",
       "gold": "10",
       "full_tokens": 3508,
-      "raw_pred": "You spent around 10 hours last month watching documentaries on Netflix.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 492
+      "dsocr_pred": "{\n  \"hours_watched\": 10\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 77,
@@ -1026,11 +949,10 @@
       "question": "What was my last name before I changed it?",
       "gold": "Johnson",
       "full_tokens": 3338,
-      "raw_pred": "Johnson",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 261
+      "dsocr_pred": "{\n  \"last_name_before_change\": \"Johnson\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 384,
+      "dsocr_pages": 6
     },
     {
       "i": 78,
@@ -1039,11 +961,10 @@
       "question": "How many stars do I need to reach the gold level on my Starbucks Rewards app?",
       "gold": "120",
       "full_tokens": 4017,
-      "raw_pred": "120 stars",
-      "raw_ok": true,
-      "summary_pred": "To reach the Gold level on the Starbucks Rewards app, you need to earn 125 stars within a 12-month period.",
-      "summary_ok": false,
-      "summary_tokens": 1132
+      "dsocr_pred": "{\n  \"stars_needed_gold\": 120\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 384,
+      "dsocr_pages": 6
     },
     {
       "i": 79,
@@ -1052,11 +973,10 @@
       "question": "How much time do I dedicate to coding exercises each day?",
       "gold": "about two hours",
       "full_tokens": 6150,
-      "raw_pred": "You dedicate about two hours each day to coding exercises.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 362
+      "dsocr_pred": "{\n  \"timeDedicated\": \"2 hours\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 80,
@@ -1065,11 +985,10 @@
       "question": "What brand are my favorite running shoes?",
       "gold": "Nike",
       "full_tokens": 2647,
-      "raw_pred": "Nike",
-      "raw_ok": true,
-      "summary_pred": "Nike",
-      "summary_ok": true,
-      "summary_tokens": 202
+      "dsocr_pred": "{\n  \"brand\": \"Nike\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 320,
+      "dsocr_pages": 5
     },
     {
       "i": 81,
@@ -1078,11 +997,10 @@
       "question": "How much total money did I spend on attending workshops in the last four months?",
       "gold": "$720",
       "full_tokens": 12047,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 520
+      "dsocr_pred": "{\n  \"totalWorkshopCost\": 700\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 1280,
+      "dsocr_pages": 20
     },
     {
       "i": 82,
@@ -1091,11 +1009,10 @@
       "question": "How long was I in Japan for?",
       "gold": "two weeks",
       "full_tokens": 3576,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "Two weeks.",
-      "summary_ok": true,
-      "summary_tokens": 493
+      "dsocr_pred": "{\n  \"duration_in_Japan\": \"two weeks\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 384,
+      "dsocr_pages": 6
     },
     {
       "i": 83,
@@ -1104,11 +1021,10 @@
       "question": "How many charity events did I participate in before the 'Run for the Cure' event?",
       "gold": "4",
       "full_tokens": 17851,
-      "raw_pred": "Based on the conversation, you did not mention participating in any charity events before the \"Run for the Cure\" event on October 15th. The only charity event you mentioned prior to that was the \"Dance for a Cause\" event on May 1st.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 183
+      "dsocr_pred": "{\n  \"count\": 2\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 1792,
+      "dsocr_pages": 28
     },
     {
       "i": 84,
@@ -1117,11 +1033,10 @@
       "question": "I've got some free time tonight, any documentary recommendations?",
       "gold": "The user would prefer documentary recommendations that are similar in style and theme to 'Our Planet', 'Free Solo', and 'Tiger King', which they have previously enjoyed. They might not prefer recommendations of documentaries that are vastly different in tone or subject matter from these titles. The preferred response utilizes the user's previously mentioned viewing history to suggest documentaries that cater to their tastes.",
       "full_tokens": 3740,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 396
+      "dsocr_pred": "{\n  \"recommendations\": [\n    \"Dynastes\",\n    \"Chasing Coral\",\n    \"Planet Earth\",\n    \"Blue Planet\",\n    \"March of the Penguins\",\n    \"The Last Lions\",\n    \"The Cave\",\n    \"The River Runs Red\",\n    \"Expedition Unknown\",\n    \"Running Wild with Bear Grylls\",\n    \"Tiger King: Murder, Mayhem and Madness\",\n    \"The Keepers\",\n    \"The Silence\",\n    \"The Jinx: The Life and Death of Robert Durst\",\n    \"Abducted in Plain Sight\",\n    \"The Inventor Out for Blood in Silicon Valley\",\n    \"Frye: The Greatest Party That Never Happened\",\n    \"The Game Changers\",\n    \"The Family I Had\",\n    \"The Imposter\"\n  ]\n  \"explanations\": {\n    \"Dynastes\": \"Dynastes offers a unique focus on animal family dynamics, providing intimate storytelling and unprecedented access to subjects like lions and penguins, complementing the broader narratives of 'Our Planet' and 'Planet Earth'.\",\n    \"Chasing Coral\": \"This documentary combines urgent climate messaging with stunning underwater footage, emphasizing coral reef conservation and the personal journey of its creators, making it distinct from the more observational",
+      "dsocr_ok": false,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 85,
@@ -1130,11 +1045,10 @@
       "question": "How many months have passed since I participated in two charity events in a row, on consecutive days?",
       "gold": "2",
       "full_tokens": 14636,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 297
+      "dsocr_pred": "{\n  \"months\": 0\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 1536,
+      "dsocr_pages": 24
     },
     {
       "i": 86,
@@ -1143,11 +1057,10 @@
       "question": "How much did I save on the Jimmy Choo heels?",
       "gold": "$300",
       "full_tokens": 5858,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 268
+      "dsocr_pred": "{\n  \"savedAmount\": \"I don't have information about the original retail price of the Jimmy Choo heels, so I cannot calculate the exact savings.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 87,
@@ -1156,11 +1069,10 @@
       "question": "I wanted to follow up on our previous conversation about fracking in the Marcellus Shale region. You mentioned that some states require fracking companies to monitor groundwater quality at nearby wells before drilling and for a certain period after drilling is complete. Can you remind me which state you mentioned as an example that has this requirement?",
       "gold": "Pennsylvania",
       "full_tokens": 919,
-      "raw_pred": "Pennsylvania.",
-      "raw_ok": true,
-      "summary_pred": "Pennsylvania",
-      "summary_ok": true,
-      "summary_tokens": 147
+      "dsocr_pred": "{\n  \"state\": \"Pennsylvania\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 128,
+      "dsocr_pages": 2
     },
     {
       "i": 88,
@@ -1169,11 +1081,10 @@
       "question": "How many days ago did I attend a networking event?",
       "gold": "26 days. 27 days (including the last day) is also acceptable.",
       "full_tokens": 1544,
-      "raw_pred": "1",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 252
+      "dsocr_pred": "{\n  \"daysAgo\": 1\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 256,
+      "dsocr_pages": 4
     },
     {
       "i": 89,
@@ -1182,11 +1093,10 @@
       "question": "Do I have a spare screwdriver for opening up my laptop?",
       "gold": "Yes",
       "full_tokens": 5813,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 287
+      "dsocr_pred": "{\n  \"answer\": \"Yes, you have a spare screwdriver that you picked up when organizing your computer desk.\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 704,
+      "dsocr_pages": 11
     },
     {
       "i": 90,
@@ -1195,11 +1105,10 @@
       "question": "What is the total distance of the hikes I did on two consecutive weekends?",
       "gold": "8 miles",
       "full_tokens": 5953,
-      "raw_pred": "The total distance of the hikes you did on two consecutive weekends is 10 miles. You hiked 5 miles on the first weekend and another 5 miles on the second weekend.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 425
+      "dsocr_pred": "{\n  \"totalDistance\": 8\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     },
     {
       "i": 91,
@@ -1208,11 +1117,10 @@
       "question": "I'm planning my trip to Speyer again and I wanted to confirm, what's the phone number of the Speyer tourism board that you provided me earlier?",
       "gold": "+49 (0) 62 32 / 14 23 - 0",
       "full_tokens": 492,
-      "raw_pred": "Phone: +49 (0) 62 32 / 14 23 - 0",
-      "raw_ok": true,
-      "summary_pred": "Phone: +49 (0) 62 32 / 14 23 - 0",
-      "summary_ok": true,
-      "summary_tokens": 202
+      "dsocr_pred": "{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\": \"062 32 / 14 23 - 0\"\n}\n{\n  \"phone_number\":",
+      "dsocr_ok": false,
+      "dsocr_tokens": 64,
+      "dsocr_pages": 1
     },
     {
       "i": 92,
@@ -1221,11 +1129,10 @@
       "question": "What play did I attend at the local community theater?",
       "gold": "The Glass Menagerie",
       "full_tokens": 2069,
-      "raw_pred": "The play you attended at the local community theater was The Glass Menagerie.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 79
+      "dsocr_pred": "{\n  \"play\": \"The Glass Menagerie\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 256,
+      "dsocr_pages": 4
     },
     {
       "i": 93,
@@ -1234,11 +1141,10 @@
       "question": "How many days ago did I meet Emma?",
       "gold": "9 days ago. 10 days (including the last day) is also acceptable.",
       "full_tokens": 3650,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 436
+      "dsocr_pred": "{\n  \"daysSinceMeetingEmma\": 1\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 448,
+      "dsocr_pages": 7
     },
     {
       "i": 94,
@@ -1247,11 +1153,10 @@
       "question": "What is the total cost of my recently purchased headphones and the iPad?",
       "gold": "The information provided is not enough. You mentioned purchasing a headphone, but you did not mention the iPad.",
       "full_tokens": 5729,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 246
+      "dsocr_pred": "{\n  \"totalCost\": 1199.99\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 576,
+      "dsocr_pages": 9
     },
     {
       "i": 95,
@@ -1260,11 +1165,10 @@
       "question": "I was going through our previous conversation about political propaganda and humor, and I was wondering if you could remind me of that Soviet cartoon you mentioned that mocked Western culture?",
       "gold": "Nu, pogodi!",
       "full_tokens": 1417,
-      "raw_pred": "Nu, pogodi!",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 144
+      "dsocr_pred": "{\n  \"Soviet Cartoon\": \"Nu pogodi\"\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 128,
+      "dsocr_pages": 2
     },
     {
       "i": 96,
@@ -1273,11 +1177,10 @@
       "question": "How many Italian restaurants have I tried in my city?",
       "gold": "The information provided is not enough. You mentioned trying Korean restaurants but not Italian restaurants.",
       "full_tokens": 5149,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": true,
-      "summary_tokens": 402
+      "dsocr_pred": "{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": 0\n}\n{\n  \"count\": {\n    \"total\": 0\n  }\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 512,
+      "dsocr_pages": 8
     },
     {
       "i": 97,
@@ -1286,11 +1189,10 @@
       "question": "How many kitchen items did I replace or fix?",
       "gold": "I replaced or fixed five items: the kitchen faucet, the kitchen mat, the toaster, the coffee maker, and the kitchen shelves.",
       "full_tokens": 16264,
-      "raw_pred": "You replaced or fixed the following kitchen items:\n1. Toaster (replaced with a toaster oven)\n2. Kitchen faucet (replaced with a new Moen one)\n3. Kitchen shelves (fixed)\n4. Toaster (again, replaced with a toaster oven)\n\nIn total, you replaced or fixed four kitchen items.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 904
+      "dsocr_pred": "{\n  \"replacements\": [\n    \"Toaster oven\",\n    \"Kitchen mat\"\n  ],\n  \"repairs\": [\n    \"Kitchen shelves\"\n  ]",
+      "dsocr_ok": false,
+      "dsocr_tokens": 1472,
+      "dsocr_pages": 23
     },
     {
       "i": 98,
@@ -1299,11 +1201,10 @@
       "question": "How many MCU films did I watch in the last 3 months?",
       "gold": "5",
       "full_tokens": 5383,
-      "raw_pred": "5",
-      "raw_ok": true,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 303
+      "dsocr_pred": "{\n  \"count\": 4\n}",
+      "dsocr_ok": false,
+      "dsocr_tokens": 512,
+      "dsocr_pages": 8
     },
     {
       "i": 99,
@@ -1312,11 +1213,10 @@
       "question": "How many days before I bought the iPhone 13 Pro did I attend the Holiday Market?",
       "gold": "7 days. 8 days (including the last day) is also acceptable.",
       "full_tokens": 6416,
-      "raw_pred": "NOT MENTIONED.",
-      "raw_ok": false,
-      "summary_pred": "NOT MENTIONED.",
-      "summary_ok": false,
-      "summary_tokens": 714
+      "dsocr_pred": "{\n  \"daysBefore\": 7\n}",
+      "dsocr_ok": true,
+      "dsocr_tokens": 640,
+      "dsocr_pages": 10
     }
   ]
 }

@@ -31,17 +31,45 @@ from softtoken.compressor import SoftTokenCompressor
 
 
 def make_chunks(dataset_name, data_path, tokenizer, max_len, n_chunks):
-    """Turn conversations into fixed-length token chunks for autoencoding."""
+    """Turn conversations into token chunks for autoencoding.
+
+    Conversations shorter than max_len are padded to max_len (previously they
+    were silently dropped, which starved training when max_len exceeded the
+    typical conversation length). Longer conversations are split into max_len
+    windows. Returns (chunk_ids, chunk_mask) tensors so the training loop can
+    ignore pad positions.
+    """
+    pad_id = tokenizer.pad_token_id
+    if pad_id is None:
+        pad_id = tokenizer.eos_token_id or 0
     data = rv.load_json(data_path)
     items = list(rv.iter_items(dataset_name, data, limit_per_sample=1))
-    chunks = []
+    chunks, masks = [], []
+
+    def _add(ids):
+        L = len(ids)
+        if L < max_len:
+            pad = torch.full((max_len - L,), pad_id, dtype=ids.dtype)
+            m = torch.cat([torch.ones(L, dtype=torch.long),
+                           torch.zeros(max_len - L, dtype=torch.long)])
+            chunks.append(torch.cat([ids, pad]))
+            masks.append(m)
+        else:
+            chunks.append(ids[:max_len])
+            masks.append(torch.ones(max_len, dtype=torch.long))
+
     for _, conv_text, *_ in items:
         ids = tokenizer(conv_text, return_tensors="pt")["input_ids"][0]
-        for i in range(0, len(ids) - max_len, max_len):
-            chunks.append(ids[i:i + max_len])
+        if len(ids) <= max_len:
+            _add(ids)
             if len(chunks) >= n_chunks:
-                return chunks
-    return chunks
+                return chunks, masks
+        else:
+            for i in range(0, len(ids) - max_len + 1, max_len):
+                _add(ids[i:i + max_len])
+                if len(chunks) >= n_chunks:
+                    return chunks, masks
+    return chunks, masks
 
 
 def _first_conversation_turns(dataset_name, raw):
@@ -138,7 +166,7 @@ def main():
     opt = torch.optim.AdamW(trainable, lr=args.lr)
 
     print(f"[st] building {args.n_chunks} chunks of {args.max_len} tokens")
-    chunks = make_chunks(args.dataset, args.data, tok, args.max_len, args.n_chunks)
+    chunks, chunk_masks = make_chunks(args.dataset, args.data, tok, args.max_len, args.n_chunks)
     print(f"[st] got {len(chunks)} chunks")
 
     # full-mode self-test: exercise per-turn role-based pooling on one real
@@ -161,16 +189,21 @@ def main():
     import random
     rng = random.Random(0)
     comp.train()
+    n_ch = len(chunks)
     for step in range(args.steps):
-        batch = torch.stack([rng.choice(chunks) for _ in range(args.batch_size)]).cuda()
-        mask = torch.ones_like(batch)
+        idxs = [rng.randrange(n_ch) for _ in range(args.batch_size)]
+        batch = torch.stack([chunks[i] for i in idxs]).cuda()
+        mask = torch.stack([chunk_masks[i] for i in idxs]).cuda()
 
         soft = comp.encode(batch, mask)                     # (B, M, d)
         logits = comp.forward_with_soft(soft, batch, mask)  # reconstruct original
-        # next-token CE: predict token t from positions <t (teacher forcing)
+        # next-token CE: predict token t from positions <t (teacher forcing).
+        # Ignore padding positions (mask==0) in the target.
+        tgt = batch[:, 1:].clone()
+        tgt[mask[:, 1:] == 0] = -100
         recon = F.cross_entropy(
             logits[:, :-1].reshape(-1, logits.size(-1)).float(),
-            batch[:, 1:].reshape(-1))
+            tgt.reshape(-1), ignore_index=-100)
 
         loss = recon
         fkl = torch.tensor(0.0)
@@ -179,7 +212,13 @@ def main():
                 full = decoder(input_ids=batch, attention_mask=mask).logits
             p_full = F.log_softmax(full[:, :-1].float(), -1)
             p_comp = F.log_softmax(logits[:, :-1].float(), -1)
-            fkl = F.kl_div(p_comp, p_full, log_target=True, reduction="batchmean")
+            # Per-position KL, then average over non-padding positions only.
+            # (batchmean divided by batch size, not token count, which made fkl
+            # scale with sequence length and blow up once padding was added.)
+            kl_per_pos = F.kl_div(
+                p_comp, p_full, log_target=True, reduction="none").sum(-1)
+            valid = mask[:, 1:].float()
+            fkl = (kl_per_pos * valid).sum() / valid.sum().clamp(min=1.0)
             loss = recon + args.fkl_weight * fkl
 
         opt.zero_grad()

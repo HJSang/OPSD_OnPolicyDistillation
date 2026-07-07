@@ -68,6 +68,8 @@ def main():
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--factor", type=int, default=None,
                     help="override the config's compression factor (simple mode)")
+    ap.add_argument("--decoder", default=None,
+                    help="override the config's decoder/reader (registry name or path)")
     ap.add_argument("--dataset", default=None)
     ap.add_argument("--data", default=None)
     ap.add_argument("--limit", type=int, default=20)
@@ -85,7 +87,7 @@ def main():
     mode = cfg.get("mode", "simple")
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    path = rv.resolve_model(cfg.get("decoder", "qwen2.5-7b"))
+    path = rv.resolve_model(args.decoder or cfg.get("decoder", "qwen2.5-7b"))
     print(f"[eval] loading decoder {path}")
     tok = AutoTokenizer.from_pretrained(path)
     decoder = AutoModelForCausalLM.from_pretrained(
