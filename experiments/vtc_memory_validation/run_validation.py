@@ -71,6 +71,9 @@ MODEL_REGISTRY = {
     "qwen3.5-4b": f"{_ELR}/Qwen/Qwen3.5-4B/"
                   "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
     "qwen3-8b": f"{_MODELS}/liha_candidate_eval/v1_0_2_QWEN3_8B",
+    "qwen3-1.7b": f"{_MODELS}/liha_candidate_eval/v1_0_3_QWEN3_1_7B",
+    "qwen3-14b": f"{_ELR}/Qwen/Qwen3-14B/"
+                 "40c069824f4251a91eefaf281ebe4c544efd3e18",
     # ---- vision-language (VTC) ----
     "qwen2.5-vl-7b": f"{_ELR}/Qwen/Qwen2.5-VL-7B-Instruct/"
                      "cc594898137f460bfe9f0759e9844b3ce807cfb5",

@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "dsocr_stage2_qwen3_1p7b",
+        "sweep_cmd": "for BS in 1024 640 512; do cp $VTC_RESULTS_DIR/dsocr_cache_lme500_b${BS}.json . 2>/dev/null || $VTC_VLLM_PY -u run_dsocr_vllm.py --dataset longmemeval --data_path data/longmemeval_oracle.json --limit 500 --shuffle --seed 0 --base_size ${BS} --render_size 1024 --font_size 16 --out dsocr_cache_lme500_b${BS}.json; python -u run_validation.py --dataset longmemeval --data_path data/longmemeval_oracle.json --conditions dsocr --limit 500 --shuffle --seed 0 --dsocr_cache dsocr_cache_lme500_b${BS}.json --text_model qwen3-1.7b --out results_lme500_dsocr_qwen3_1p7b_b${BS}.json; cp results_lme500_dsocr_qwen3_1p7b_b${BS}.json $VTC_RESULTS_DIR/; done"
+    }
+}

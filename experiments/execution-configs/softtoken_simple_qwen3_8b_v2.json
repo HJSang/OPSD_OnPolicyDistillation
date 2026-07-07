@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "softtoken_simple_qwen3_8b_v2",
+        "sweep_cmd": "export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True; for F in 4 8 16; do python -u softtoken/train.py --config configs/simple.json --factor ${F} --max_len 256 --batch_size 4 --decoder qwen3-8b --dataset ultrachat --data data/ultrachat_train.json --save softtoken/ckpt_simple_f${F}_qwen3_8b_v2.pt; python -u softtoken/eval_softtoken.py --config configs/simple.json --factor ${F} --decoder qwen3-8b --ckpt softtoken/ckpt_simple_f${F}_qwen3_8b_v2.pt --dataset longmemeval --data data/longmemeval_oracle.json --limit 500 --shuffle --seed 0 --out results_zeroshot500_qwen3_8b_simple_f${F}_v2.json; cp results_zeroshot500_qwen3_8b_simple_f${F}_v2.json $VTC_RESULTS_DIR/; done"
+    }
+}
