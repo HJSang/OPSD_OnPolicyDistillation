@@ -118,6 +118,16 @@
                 "execution_params_file": "experiments/execution-configs/softtoken_full_u1_zeroshot.json"
             },
             {
+                "name": "softtoken_full_u1_locomo",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_full_u1_locomo.json"
+            },
+            {
+                "name": "softtoken_simple_locomo",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_simple_locomo.json"
+            },
+            {
                 "name": "dsocr_b1024_100",
                 "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
                 "execution_params_file": "experiments/execution-configs/dsocr_b1024_100.json"
