@@ -1,6 +1,0 @@
-{
-    "inputs": {
-        "run_name": "softtoken_full_u1_qwen3_1p7b_zeroshot500",
-        "sweep_cmd": "for A in 8 16 32; do python -u softtoken/train.py --config configs/full_u1_a${A}.json --decoder qwen3-1.7b --dataset ultrachat --data data/ultrachat_train.json --save softtoken/ckpt_full_u1_a${A}_qwen3_1p7b.pt; python -u softtoken/eval_softtoken.py --config configs/full_u1_a${A}.json --decoder qwen3-1.7b --ckpt softtoken/ckpt_full_u1_a${A}_qwen3_1p7b.pt --dataset longmemeval --data data/longmemeval_oracle.json --limit 500 --shuffle --seed 0 --out results_zeroshot500_qwen3_1p7b_full_u1_a${A}.json; cp results_zeroshot500_qwen3_1p7b_full_u1_a${A}.json $VTC_RESULTS_DIR/; done"
-    }
-}

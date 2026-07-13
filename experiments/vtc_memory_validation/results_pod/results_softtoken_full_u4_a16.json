@@ -1,0 +1,225 @@
+{
+  "config": {
+    "_comment": "Soft-token compressor variant: FULL = our method. Per-session/turn pooling with per-role factors (compress user facts lightly, assistant chatter heavily).",
+    "name": "full_u4_a16",
+    "mode": "full",
+    "decoder": "qwen2.5-7b",
+    "factor": 8,
+    "user_factor": 4,
+    "assistant_factor": 16,
+    "enc_layers": 2,
+    "train_encoder": true,
+    "fkl_weight": 1.0,
+    "steps": 1000,
+    "n_chunks": 400,
+    "max_len": 256,
+    "batch_size": 4,
+    "lr": 0.0001,
+    "dataset": "locomo",
+    "data": "data/locomo10.json",
+    "save": "softtoken/ckpt_full_u4_a16.pt"
+  },
+  "ckpt": "softtoken/ckpt_full_u4_a16.pt",
+  "records": [
+    {
+      "i": 0,
+      "category": "temporal",
+      "question": "When did Caroline go to the LGBTQ support group?",
+      "gold": "7 May 2023",
+      "pred": "fe\u7684\nLGBTQ+ is a\n\n\n\nLGBTQ+ is an acronym that stands for Lesbian,\nLesbian, Gay, Bisexual, Transgender, and Queer. Individuals. The conversation provided does not contain any specific question or context related to the LGBTQ+ community. However,",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 1,
+      "category": "temporal",
+      "question": "When did Melanie paint a sunrise?",
+      "gold": "2022",
+      "pred": "fe\n\nfe\n\nfe\n\nAnswer thefefe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 2,
+      "category": "open_domain",
+      "question": "What fields would Caroline be likely to pursue in her educaton?",
+      "gold": "Psychology, counseling certification",
+      "pred": "fe,\n her education. her education.\n\n her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education her education",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 3,
+      "category": "multi_hop",
+      "question": "What did Caroline research?",
+      "gold": "Adoption agencies",
+      "pred": "fe\n\nfe\n\nfe\n\nfe1fe1fe2fe3fe4fe5fe6fe7fe8fe9fe10fe11fe12fe13fe14fe15fe16fe17fe18fe19fe20fe21fe2",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 4,
+      "category": "multi_hop",
+      "question": "What is Caroline's identity?",
+      "gold": "Transgender woman",
+      "pred": "feels\nfe\n\nfe\n\n\nfe\n\n\nfe\n\nfe1ph\n\nfe1ph\nAnswer: The question youfe1ph doesn't provide a specific question or context for an answer.fe1ph\n\nTo provide an appropriate response, I would need more information or a specific question related to the conversation",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 5,
+      "category": "temporal",
+      "question": "When did Melanie run a charity race?",
+      "gold": "The sunday before 25 May 2023",
+      "pred": "fe\n\nfe\n\nfe\n\nAnswer the\nke\n\nfe\n\n\nfe\n\nAnswer the question using only the conversation above:\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe\n\nfe",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 6,
+      "category": "temporal",
+      "question": "When is Melanie planning on going camping?",
+      "gold": "June 2023",
+      "pred": "fe\n\nfe\n\n\n Answer the\n Answer: Answer: Answer: The conversation does not provide a specific question to be answered.re.\nQuestion: What is the main topic of the given text? The0 answer: The conversation does not contain any specific question or topic for discussion.\nAnswer: The conversation provided",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 7,
+      "category": "multi_hop",
+      "question": "What is Caroline's relationship status?",
+      "gold": "Single",
+      "pred": "fe\n\nfeasibility.\nfeasibility\n\n\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeasibility\nfeas",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 8,
+      "category": "temporal",
+      "question": "When did Caroline give a speech at a school?",
+      "gold": "The week before 9 June 2023",
+      "pred": "fe\u7684\nAnswer the\n\n\n\n\n\n school\nAnswer the question using the given text.\n\nAnswer the question using the given text.\nQuestion: How does the text suggest that schools should approach the issue of bullying? Answer: The text suggests that schools should have a clear and consistent policy in place",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 9,
+      "category": "temporal",
+      "question": "When did Caroline meet up with her friends, family, and mentors?",
+      "gold": "The week before 9 June 2023",
+      "pred": "fe:\n\n,fe\n\n\n\n\n1\n\nAnswer the\nAnswer: The given conversation above pertains to a family or group of people providing guidance or support.\nAnswer: It seems like you're looking for advice or guidance from a family or group of people.0\n\nPlease determine whether the given text",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 10,
+      "category": "temporal",
+      "question": "How long has Caroline had her current group of friends for?",
+      "gold": "4 years",
+      "pred": "fe,\n1\n,,\nAnswer the\n question:\nAnswer the question using only the conversation above.\nAnswer: The conversation does not provide enough information to answer a specific question. Answer: Based on the given text, there is no specific question or context to provide an appropriate answer. Please provide more details",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 11,
+      "category": "multi_hop",
+      "question": "Where did Caroline move from 4 years ago?",
+      "gold": "Sweden",
+      "pred": ",fe\n\nfeet.fefeet\n\nfeet\n\nfeet\n\nAnswer thefeet thequestion using only the information provided in the conversation above is not possible as there is no specific question or context given.feet feet\n\nQuestion: How tall are you? Answer: I am 5 feet 6",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 12,
+      "category": "temporal",
+      "question": "How long ago was Caroline's 18th birthday?",
+      "gold": "10 years ago",
+      "pred": "fe\n\nfeet\n\n.\n.\nAnswer the\nAnswer: The question is incomplete and does not provide a clear request or statement to be answered.\nYou can continue the conversation by providing more context or asking a specific question related to the given text. Answer: The answer provided does not address the incomplete question.",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 13,
+      "category": "multi_hop",
+      "question": "What career path has Caroline decided to persue?",
+      "gold": "counseling or mental health for Transgender people",
+      "pred": "fe,\nAnswer:\n\n\n\n\n\n\nCaroline,\nkeeps the conversation going by asking a question about the topic at hand.\nQuestion: What is the main idea of the text?1\nAnswer: The main idea of the text is to discuss and provide information about a specific topic",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 14,
+      "category": "open_domain",
+      "question": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+      "gold": "Likely no",
+      "pred": "re:\n\n,feeling\nfeeling of\nAnswer the\n\nfeeling\n\nAnswer the\nAnswer: feeling\n\nThe conversation provided does not contain any specific question to be answered. The answer given is a repetition of \"feeling\" which is a word that appears at the end of the instruction but doesn't form",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 15,
+      "category": "multi_hop",
+      "question": "What activities does Melanie partake in?",
+      "gold": "pottery, camping, painting, swimming",
+      "pred": "fe\n\nfe\n\n\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe\r\nfe",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 16,
+      "category": "temporal",
+      "question": "When did Melanie sign up for a pottery class?",
+      "gold": "2 July 2023",
+      "pred": "fe\u7684\nAnswer:\n\n\n\n\n\n0\n\nAnswer the\nAnswer the question using only the information provided in the conversation above.\nAnswer: The question cannot be answered based solely on the given conversation as it does not contain any specific information or context to determine what the question is asking about.",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 17,
+      "category": "temporal",
+      "question": "When is Caroline going to the transgender conference?",
+      "gold": "July 2023",
+      "pred": "fe is\n in the\n \nAnswer the\n\n\n \nAnswer the \nAnswer: The answer to your question cannot be determined from the given text as it does not contain any specific information or context related to a transgender conference. conference or any related events or discussions. The text provided appears to be a series of",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 18,
+      "category": "multi_hop",
+      "question": "Where has Melanie camped?",
+      "gold": "beach, mountains, forest",
+      "pred": "fe.\n\n\n1fe\n\n\n1\n1\n1\n1\n10\n15:24\n\nAnswer the\nThe answer to the1115:15:15:24 is not provided in the given text.15:24. However, based on the",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    },
+    {
+      "i": 19,
+      "category": "multi_hop",
+      "question": "What do Melanie's kids like?",
+      "gold": "dinosaurs, nature",
+      "pred": ",fe.\nMelanie iskeeps asking\n\n\nkeeps the conversation focused and\nMelanie keeps the conversation focused on the text provided,\nMelanie maintains the topic to the given text without adding or altering any information outside of what is presented.",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2442
+    }
+  ]
+}

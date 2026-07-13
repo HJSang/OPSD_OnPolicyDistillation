@@ -48,6 +48,66 @@
         },
         "executions": [
             {
+                "name": "raw_summary_100",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/raw_summary_100.json"
+            },
+            {
+                "name": "softtoken_100",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_100.json"
+            },
+            {
+                "name": "dsocr_recon_100",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/dsocr_recon_100_v2.json"
+            },
+            {
+                "name": "dsocr_debug",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/dsocr_debug.json"
+            },
+            {
+                "name": "dsocr_debug2",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/dsocr_debug2.json"
+            },
+            {
+                "name": "dsocr_debug3",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/dsocr_debug3.json"
+            },
+            {
+                "name": "softtoken_full_100",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_full_100.json"
+            },
+            {
+                "name": "softtoken_full_debug",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_full_debug.json"
+            },
+            {
+                "name": "softtoken_full_debug2",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_full_debug2.json"
+            },
+            {
+                "name": "softtoken_full_u1_curve",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_full_u1_curve.json"
+            },
+            {
+                "name": "softtoken_simple_500",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_simple_500.json"
+            },
+            {
+                "name": "softtoken_full_u1_curve_500",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/softtoken_full_u1_curve_500.json"
+            },
+            {
                 "name": "softtoken_simple_zeroshot",
                 "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
                 "execution_params_file": "experiments/execution-configs/softtoken_simple_zeroshot.json"
@@ -56,6 +116,26 @@
                 "name": "softtoken_full_u1_zeroshot",
                 "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
                 "execution_params_file": "experiments/execution-configs/softtoken_full_u1_zeroshot.json"
+            },
+            {
+                "name": "lb_sourceqa_f8_smoke",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/lb_sourceqa_f8_smoke.json"
+            },
+            {
+                "name": "lb_longmemeval_f8_smoke",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/lb_longmemeval_f8_smoke.json"
+            },
+            {
+                "name": "lb_sourceqa_f8_longbench",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/lb_sourceqa_f8_longbench.json"
+            },
+            {
+                "name": "lb_longmemeval_f8_longbench",
+                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
+                "execution_params_file": "experiments/execution-configs/lb_longmemeval_f8_longbench.json"
             },
             {
                 "name": "dsocr_b1024_100",
@@ -71,106 +151,6 @@
                 "name": "dsocr_b512_100",
                 "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
                 "execution_params_file": "experiments/execution-configs/dsocr_b512_100.json"
-            },
-            {
-                "name": "softtoken_full_u1_qwen3_8b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_full_u1_qwen3_8b.json"
-            },
-            {
-                "name": "softtoken_simple_qwen3_8b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen3_8b.json"
-            },
-            {
-                "name": "softtoken_full_u1_qwen3_1p7b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_full_u1_qwen3_1p7b.json"
-            },
-            {
-                "name": "softtoken_simple_qwen3_1p7b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen3_1p7b.json"
-            },
-            {
-                "name": "dsocr_stage2_qwen3_8b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/dsocr_stage2_qwen3_8b.json"
-            },
-            {
-                "name": "dsocr_stage2_qwen3_1p7b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/dsocr_stage2_qwen3_1p7b.json"
-            },
-            {
-                "name": "dsocr_locomo_qwen3_8b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/dsocr_locomo_qwen3_8b.json"
-            },
-            {
-                "name": "dsocr_locomo_qwen2p5_7b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/dsocr_locomo_qwen2p5_7b.json"
-            },
-            {
-                "name": "softtoken_simple_qwen3_8b_locomo_fkl1",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen3_8b_locomo_fkl1.json"
-            },
-            {
-                "name": "softtoken_simple_qwen2p5_7b_locomo_fkl1",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen2p5_7b_locomo_fkl1.json"
-            },
-            {
-                "name": "softtoken_full_u1_qwen3_8b_v2",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_full_u1_qwen3_8b_v2.json"
-            },
-            {
-                "name": "softtoken_simple_qwen3_8b_v2",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen3_8b_v2.json"
-            },
-            {
-                "name": "softtoken_full_u1_qwen2p5_7b_v2",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_full_u1_qwen2p5_7b_v2.json"
-            },
-            {
-                "name": "softtoken_simple_qwen2p5_7b_v2",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen2p5_7b_v2.json"
-            },
-            {
-                "name": "softtoken_full_u1_qwen3_1p7b_v2",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_full_u1_qwen3_1p7b_v2.json"
-            },
-            {
-                "name": "softtoken_simple_qwen3_1p7b_v2",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen3_1p7b_v2.json"
-            },
-            {
-                "name": "softtoken_simple_qwen3_1p7b_locomo_fkl1",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen3_1p7b_locomo_fkl1.json"
-            },
-            {
-                "name": "dsocr_locomo_qwen3_1p7b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/dsocr_locomo_qwen3_1p7b.json"
-            },
-            {
-                "name": "softtoken_simple_qwen3_14b_locomo_fkl1",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/softtoken_simple_qwen3_14b_locomo_fkl1.json"
-            },
-            {
-                "name": "dsocr_locomo_qwen3_14b",
-                "workflow_name": "workflows.sweep_workflow.vtc_sweep_workflow",
-                "execution_params_file": "experiments/execution-configs/dsocr_locomo_qwen3_14b.json"
             }
         ]
     }

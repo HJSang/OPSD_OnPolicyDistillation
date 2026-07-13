@@ -1,6 +1,0 @@
-{
-    "inputs": {
-        "run_name": "softtoken_simple_qwen3_14b_locomo_fkl1",
-        "sweep_cmd": "export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True; for F in 4 8 16; do python -u softtoken/train.py --config configs/simple.json --factor ${F} --max_len 2048 --batch_size 1 --fkl_weight 1.0 --decoder qwen3-14b --dataset ultrachat --data data/ultrachat_train.json --save softtoken/ckpt_simple_f${F}_qwen3_14b_fkl1.pt; python -u softtoken/eval_softtoken.py --config configs/simple.json --factor ${F} --decoder qwen3-14b --ckpt softtoken/ckpt_simple_f${F}_qwen3_14b_fkl1.pt --dataset locomo --data data/locomo10.json --limit 500 --shuffle --seed 0 --out results_locomo500_qwen3_14b_simple_f${F}_fkl1.json; cp results_locomo500_qwen3_14b_simple_f${F}_fkl1.json $VTC_RESULTS_DIR/; done"
-    }
-}

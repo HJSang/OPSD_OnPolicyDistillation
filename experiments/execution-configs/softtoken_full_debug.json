@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "softtoken_full_debug",
+        "sweep_cmd": "L=/shared/public/sharing/vtc_memory/results/full_debug.log; { echo TRAIN; python -u softtoken/train.py --config configs/full.json --dataset longmemeval --data data/longmemeval_oracle.json --steps 20 --n_chunks 8 --save softtoken/ckpt_fulldbg.pt; echo EVAL; python -u softtoken/eval_softtoken.py --config configs/full.json --ckpt softtoken/ckpt_fulldbg.pt --dataset longmemeval --data data/longmemeval_oracle.json --limit 4 --shuffle --seed 0 --out /shared/public/sharing/vtc_memory/results/full_debug_results.json; echo EXIT=$?; } > $L 2>&1; echo wrote"
+    }
+}

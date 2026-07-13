@@ -1,0 +1,23 @@
+### dsocr stage2 lme base_size=1024 ###
+category             dsocr
+abstention           1.000
+knowledge-update       1.000
+multi-session        0.250
+single-session-assistant       1.000
+single-session-preference       0.000
+single-session-user       1.000
+temporal-reasoning       0.250
+OVERALL              0.562
+  dsocr      2.43x
+### dsocr stage2 lme base_size=640 ###
+category             dsocr
+abstention           1.000
+knowledge-update       1.000
+multi-session        0.500
+single-session-assistant       0.000
+single-session-preference       0.000
+single-session-user       0.500
+temporal-reasoning       0.500
+OVERALL              0.562
+  dsocr      6.23x
+DSOCR LME STAGE2 DONE

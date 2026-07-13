@@ -1,0 +1,23 @@
+[data] locomo: 20 QA items (from 10 instances)
+[text] loading /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<00:43,  7.78it/s]Loading weights:   5%|▌         | 18/339 [00:00<00:03, 86.40it/s]Loading weights:  12%|█▏        | 41/339 [00:00<00:02, 142.40it/s]Loading weights:  19%|█▉        | 64/339 [00:00<00:01, 171.07it/s]Loading weights:  24%|██▍       | 82/339 [00:00<00:01, 168.09it/s]Loading weights:  30%|███       | 102/339 [00:00<00:01, 168.04it/s]Loading weights:  37%|███▋      | 125/339 [00:00<00:01, 183.68it/s]Loading weights:  44%|████▎     | 148/339 [00:00<00:01, 184.14it/s]Loading weights:  51%|█████     | 172/339 [00:01<00:00, 195.31it/s]Loading weights:  57%|█████▋    | 192/339 [00:01<00:00, 191.33it/s]Loading weights:  63%|██████▎   | 212/339 [00:01<00:00, 180.81it/s]Loading weights:  68%|██████▊   | 232/339 [00:01<00:00, 181.39it/s]Loading weights:  75%|███████▌  | 255/339 [00:01<00:00, 189.57it/s]Loading weights:  81%|████████  | 275/339 [00:01<00:00, 190.18it/s]Loading weights:  87%|████████▋ | 295/339 [00:01<00:00, 181.46it/s]Loading weights:  94%|█████████▎| 317/339 [00:01<00:00, 186.78it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 178.02it/s]
+[dsocr] loaded 1 cached reconstructions from dsocr_cache_locomo_b1024.json
+  ... 5/20 done
+  ... 10/20 done
+  ... 15/20 done
+  ... 20/20 done
+
+================ RESULTS ================
+category               raw     summary       dsocr
+multi_hop            0.750       0.250       0.625
+open_domain          0.500       0.500       0.500
+temporal             0.300       0.000       0.300
+OVERALL              0.500       0.150       0.450
+
+---- mean compression ratio ----
+  raw        1.00x
+  summary    48.79x
+  dsocr      3.46x
+
+[out] wrote per-item records to results_dsocr_b1024.json

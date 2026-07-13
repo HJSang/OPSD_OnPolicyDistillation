@@ -30,22 +30,64 @@ import run_validation as rv
 from softtoken.compressor import SoftTokenCompressor, build_role_segments
 
 
-QA_INSTR = ("\n\nAnswer the question using only the conversation above. "
-            "If not present, reply: NOT MENTIONED.\nQuestion: ")
+QA_INSTR_ABSTAIN = ("\n\nAnswer the question using only the conversation above. "
+                    "If not present, reply: NOT MENTIONED.\nQuestion: ")
+QA_INSTR_NO_ABSTAIN = ("\n\nAnswer the question using only the conversation above. "
+                       "Give a short answer.\nQuestion: ")
+
+# When answering from soft tokens the reader is fed a bare text continuation
+# ([soft ; question] with no chat template), so it runs in transcript-completion
+# mode and frequently keeps decoding past its answer, hallucinating fake
+# follow-up turns ("\nuser: ...\nAnswer: ..."). Those leaked turns are not part
+# of the answer but drag an LLM judge toward "no". We cut the response at the
+# first leaked-turn marker so only the actual answer is scored. This recovers
+# ~0.10-0.12 accuracy on LongMemEval and is the honest decoding boundary.
+LEAK_MARKERS = ("\nuser:", "\nUser:", "\nUSER:", "\nassistant:", "\nAssistant:",
+                "\nAnswer:", "\nQuestion:", "\nQ:", "\nA:", "\nB:")
 
 
-def generate_from_soft(comp, tok, soft, question, max_new_tokens=64):
+def strip_leaked_turns(text):
+    """Truncate a soft-token answer at the first hallucinated follow-up turn."""
+    for sep in LEAK_MARKERS:
+        text = text.split(sep)[0]
+    return text.strip()
+
+
+def generate_from_soft(comp, tok, soft, question, qa_instr, max_new_tokens=64):
     """soft: (1, M, d). Feed [soft ; question_emb] and greedily decode."""
-    q_ids = tok(QA_INSTR + question + "\nAnswer:", return_tensors="pt")[
+    q_ids = tok(qa_instr + question + "\nAnswer:", return_tensors="pt")[
         "input_ids"].to(soft.device)
     q_emb = comp.embed_tokens(q_ids)
     inp = torch.cat([soft, q_emb], dim=1)
     attn = torch.ones(inp.shape[:2], dtype=torch.long, device=inp.device)
+    eos_ids = [i for i in (tok.eos_token_id,
+                           tok.convert_tokens_to_ids("<|im_end|>"))
+               if isinstance(i, int) and i >= 0]
     with torch.no_grad():
         out = comp.decoder.generate(
             inputs_embeds=inp, attention_mask=attn,
-            max_new_tokens=max_new_tokens, do_sample=False)
-    return tok.decode(out[0], skip_special_tokens=True).strip()
+            max_new_tokens=max_new_tokens, do_sample=False,
+            eos_token_id=eos_ids or None,
+            pad_token_id=tok.pad_token_id or tok.eos_token_id)
+    text = tok.decode(out[0], skip_special_tokens=True).strip()
+    return strip_leaked_turns(text)
+
+
+def generate_from_full_text(decoder, tok, conversation, question, qa_instr,
+                            max_new_tokens=64):
+    """Uncompressed readability control: feed full text tokens directly."""
+    prompt = conversation + qa_instr + question + "\nAnswer:"
+    ids = tok(prompt, return_tensors="pt")["input_ids"].cuda()
+    eos_ids = [i for i in (tok.eos_token_id,
+                           tok.convert_tokens_to_ids("<|im_end|>"))
+               if isinstance(i, int) and i >= 0]
+    with torch.no_grad():
+        out = decoder.generate(
+            input_ids=ids, max_new_tokens=max_new_tokens, do_sample=False,
+            eos_token_id=eos_ids or None,
+            pad_token_id=tok.pad_token_id or tok.eos_token_id)
+    text = tok.decode(out[0][ids.shape[1]:], skip_special_tokens=True).strip()
+    return strip_leaked_turns(text)
 
 
 def judge_simple(tok, comp, question, gold, pred):
@@ -60,6 +102,83 @@ def judge_simple(tok, comp, question, gold, pred):
         out = comp.decoder.generate(input_ids=ids, max_new_tokens=4, do_sample=False)
     verdict = tok.decode(out[0][ids.shape[1]:], skip_special_tokens=True)
     return "CORRECT" in verdict.upper()
+
+
+def _locomo_conversation_to_ab_text(sample):
+    """Flatten LoCoMo with eval-time speaker names normalized to A/B.
+
+    SynthLoCoMo trains on `A:`/`B:` passage turns and questions phrased as
+    `Speaker A/B`. This transform tests whether real-name surface forms are a
+    refusal trigger without changing the checkpoint or LoCoMo content.
+    """
+    import re
+    conv = sample["conversation"]
+    speaker_a = conv.get("speaker_a", "Speaker A")
+    speaker_b = conv.get("speaker_b", "Speaker B")
+    lines = ["Conversation between Speaker A and Speaker B."]
+    session_ids = sorted(
+        int(k.split("_")[1]) for k in conv
+        if re.fullmatch(r"session_\d+", k))
+    for sid in session_ids:
+        key = f"session_{sid}"
+        date = conv.get(f"{key}_date_time", "")
+        lines.append(f"\n=== Session {sid} ({date}) ===")
+        for turn in conv[key]:
+            speaker = turn.get("speaker", "")
+            if speaker == speaker_a:
+                label = "A"
+            elif speaker == speaker_b:
+                label = "B"
+            else:
+                label = speaker
+            text = turn.get("text", "")
+            cap = turn.get("blip_caption")
+            if cap:
+                text = f"{text} [shared image: {cap}]"
+            lines.append(f"{label}: {text}")
+    return "\n".join(lines)
+
+
+def _normalize_locomo_question(question, sample):
+    conv = sample["conversation"]
+    speaker_a = conv.get("speaker_a", "")
+    speaker_b = conv.get("speaker_b", "")
+    if speaker_a:
+        question = question.replace(speaker_a, "Speaker A")
+    if speaker_b:
+        question = question.replace(speaker_b, "Speaker B")
+    return question
+
+
+def _iter_locomo_ab_items(raw):
+    for si, sample in enumerate(raw):
+        conv_text = _locomo_conversation_to_ab_text(sample)
+        qa_list = sample.get("qa", [])
+        for qa in qa_list:
+            try:
+                cat = int(qa.get("category"))
+            except (TypeError, ValueError):
+                cat = qa.get("category")
+            cat_name = rv.CATEGORY_NAMES.get(cat, f"cat_{cat}")
+            gold = qa.get("answer", qa.get("adversarial_answer", ""))
+            question = _normalize_locomo_question(qa.get("question", ""), sample)
+            if question:
+                yield si, conv_text, question, str(gold), cat_name
+
+
+def _iter_eval_items(dataset, raw, normalize_locomo_speakers=False):
+    if dataset == "synthlocomo":
+        for si, item in enumerate(raw):
+            passage = item.get("passage", "")
+            for qa in item.get("qas", []):
+                q, a = qa.get("q", ""), qa.get("a", "")
+                if passage and q and a:
+                    yield si, passage, q, str(a), qa.get("category", "unknown")
+        return
+    if dataset == "locomo" and normalize_locomo_speakers:
+        yield from _iter_locomo_ab_items(raw)
+        return
+    yield from rv.iter_items(dataset, raw, limit_per_sample=None)
 
 
 def main():
@@ -77,6 +196,20 @@ def main():
                     help="shuffle before --limit (match run_validation for a "
                          "fair same-sample comparison on LongMemEval)")
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--enc_window", type=int, default=0,
+                    help="if >0, encode the conversation in windows of this many "
+                         "tokens (simple mode). Match the value used at training "
+                         "with --long_context so the borrowed encoder stays "
+                         "in-distribution on long conversations.")
+    ap.add_argument("--normalize_locomo_speakers", action="store_true",
+                    help="eval-only ablation: map LoCoMo speaker names to A/B in "
+                         "the passage and Speaker A/B in the question.")
+    ap.add_argument("--no_abstain", action="store_true",
+                    help="eval-only ablation: remove the NOT MENTIONED "
+                         "instruction from the QA prompt.")
+    ap.add_argument("--full_text", action="store_true",
+                    help="eval-only readability control: answer from the full "
+                         "uncompressed text instead of soft tokens.")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -93,45 +226,81 @@ def main():
     decoder = AutoModelForCausalLM.from_pretrained(
         path, torch_dtype=torch.bfloat16, device_map="cuda").eval()
 
+    # Match the encoder config to how the checkpoint was trained: if the ckpt
+    # has no saved encoder layers it was trained with train_encoder=False (the
+    # long-context recipe), so the borrowed layers must stay in bf16 to match.
+    import torch as _torch
+    _ck = _torch.load(args.ckpt, map_location="cpu")
+    _ck_args = _ck.get("args", {}) if isinstance(_ck, dict) else {}
+    train_encoder = "enc_layers" in _ck if isinstance(_ck, dict) else True
+    if isinstance(_ck_args, dict) and "train_encoder" in _ck_args:
+        train_encoder = bool(_ck_args["train_encoder"])
+    # Reconstruct the token pooling used at training. If the ckpt was trained
+    # with attention pooling it carries pool_key/pool_query; the compressor must
+    # be built with pool_mode="attn" or load_trained silently drops them and
+    # eval falls back to mean pooling (wrong, degraded results).
+    pool_mode = _ck_args.get("pool") if isinstance(_ck_args, dict) else None
+    if not pool_mode:
+        pool_mode = "attn" if (isinstance(_ck, dict) and "pool_key" in _ck) \
+            else cfg.get("pool", "mean")
+    del _ck
+
     comp = SoftTokenCompressor(
         decoder, factor=args.factor or cfg.get("factor", 8),
-        enc_layers=cfg.get("enc_layers", 2), train_encoder=True, mode=mode,
+        enc_layers=cfg.get("enc_layers", 2), train_encoder=train_encoder,
+        mode=mode,
         role_factors={"user": cfg.get("user_factor", 4),
-                      "assistant": cfg.get("assistant_factor", 16)}).cuda()
+                      "assistant": cfg.get("assistant_factor", 16)},
+        pool_mode=pool_mode).cuda()
     comp.load_trained(args.ckpt)
     comp.eval()
-    print(f"[eval] loaded ckpt {args.ckpt} (mode={mode})")
+    print(f"[eval] loaded ckpt {args.ckpt} (mode={mode}, "
+          f"pool={pool_mode}, train_encoder={train_encoder})")
 
     raw = rv.load_json(data)
-    items = list(rv.iter_items(dataset, raw, limit_per_sample=None))
+    items = list(_iter_eval_items(
+        dataset, raw, normalize_locomo_speakers=args.normalize_locomo_speakers))
     if args.shuffle:
         import random
         random.Random(args.seed).shuffle(items)
-    items = items[: args.limit]
+    if args.limit:
+        items = items[: args.limit]
     print(f"[eval] {len(items)} QA items")
 
     results = defaultdict(list)
     ratios = []
     records = []
+    qa_instr = QA_INSTR_NO_ABSTAIN if args.no_abstain else QA_INSTR_ABSTAIN
+
     for idx, (si, conv_text, question, gold, cat) in enumerate(items):
         full_ids = tok(conv_text, return_tensors="pt")["input_ids"].cuda()
         n_tok = full_ids.shape[1]
 
-        # build soft tokens
-        with torch.no_grad():
-            if mode == "full":
-                turns = _turns_for_sample(dataset, raw, si)
-                ids, segs = build_role_segments(tok, turns)
-                ids = ids.cuda()
-                soft_list = comp.encode(ids, torch.ones_like(ids), segments=segs)
-                soft = soft_list[0].unsqueeze(0)
-                n_soft = soft.shape[1]
-            else:
-                mask = torch.ones_like(full_ids)
-                soft = comp.encode(full_ids, mask)  # (1, M, d)
-                n_soft = soft.shape[1]
+        if args.full_text:
+            n_soft = n_tok
+            pred = generate_from_full_text(
+                decoder, tok, conv_text, question, qa_instr)
+        else:
+            # build soft tokens
+            with torch.no_grad():
+                if mode == "full":
+                    turns = _turns_for_sample(dataset, raw, si)
+                    ids, segs = build_role_segments(tok, turns)
+                    ids = ids.cuda()
+                    soft_list = comp.encode(ids, torch.ones_like(ids), segments=segs)
+                    soft = soft_list[0].unsqueeze(0)
+                    n_soft = soft.shape[1]
+                else:
+                    mask = torch.ones_like(full_ids)
+                    if args.enc_window and args.enc_window > 0:
+                        soft = comp.encode_long(full_ids, mask,
+                                                window=args.enc_window)  # (1, M, d)
+                    else:
+                        soft = comp.encode(full_ids, mask)  # (1, M, d)
+                    n_soft = soft.shape[1]
 
-        pred = generate_from_soft(comp, tok, soft.to(decoder.dtype), question)
+            pred = generate_from_soft(
+                comp, tok, soft.to(decoder.dtype), question, qa_instr)
         ok = judge_simple(tok, comp, question, gold, pred)
         results[cat].append(ok)
         ratios.append(n_tok / max(1, n_soft))
@@ -156,7 +325,18 @@ def main():
 
 
 def _turns_for_sample(dataset_name, raw, si):
+    if dataset_name == "synthlocomo":
+        turns = []
+        for session in raw[si].get("sessions", []):
+            for t in session.get("turns", []):
+                turns.append({"role": t.get("speaker", "A"),
+                              "content": t.get("text", "")})
+        return turns
     if dataset_name == "longmemeval":
+        inst = raw[si]
+        return [{"role": t.get("role", "user"), "content": t.get("content", "")}
+                for s in inst.get("haystack_sessions", []) for t in s]
+    if dataset_name == "msc_lme":
         inst = raw[si]
         return [{"role": t.get("role", "user"), "content": t.get("content", "")}
                 for s in inst.get("haystack_sessions", []) for t in s]

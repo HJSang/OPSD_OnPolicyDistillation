@@ -1,0 +1,122 @@
+{
+  "narrativeqa": {
+    "examples": 200,
+    "avg_length": 18404.935,
+    "path": "longbench_official/data/narrativeqa.jsonl",
+    "fields": [
+      "_id",
+      "all_classes",
+      "answers",
+      "context",
+      "dataset",
+      "input",
+      "language",
+      "length"
+    ]
+  },
+  "qasper": {
+    "examples": 200,
+    "avg_length": 3618.7,
+    "path": "longbench_official/data/qasper.jsonl",
+    "fields": [
+      "_id",
+      "all_classes",
+      "answers",
+      "context",
+      "dataset",
+      "input",
+      "language",
+      "length"
+    ]
+  },
+  "multifieldqa_en": {
+    "examples": 150,
+    "avg_length": 4558.7,
+    "path": "longbench_official/data/multifieldqa_en.jsonl",
+    "fields": [
+      "_id",
+      "all_classes",
+      "answers",
+      "context",
+      "dataset",
+      "input",
+      "language",
+      "length"
+    ]
+  },
+  "multifieldqa_zh": {
+    "examples": 200,
+    "avg_length": 6700.675,
+    "path": "longbench_official/data/multifieldqa_zh.jsonl",
+    "fields": [
+      "_id",
+      "all_classes",
+      "answers",
+      "context",
+      "dataset",
+      "input",
+      "language",
+      "length"
+    ]
+  },
+  "hotpotqa": {
+    "examples": 200,
+    "avg_length": 9149.22,
+    "path": "longbench_official/data/hotpotqa.jsonl",
+    "fields": [
+      "_id",
+      "all_classes",
+      "answers",
+      "context",
+      "dataset",
+      "input",
+      "language",
+      "length"
+    ]
+  },
+  "2wikimqa": {
+    "examples": 200,
+    "avg_length": 4885.315,
+    "path": "longbench_official/data/2wikimqa.jsonl",
+    "fields": [
+      "_id",
+      "all_classes",
+      "answers",
+      "context",
+      "dataset",
+      "input",
+      "language",
+      "length"
+    ]
+  },
+  "musique": {
+    "examples": 200,
+    "avg_length": 11017.655,
+    "path": "longbench_official/data/musique.jsonl",
+    "fields": [
+      "_id",
+      "all_classes",
+      "answers",
+      "context",
+      "dataset",
+      "input",
+      "language",
+      "length"
+    ]
+  },
+  "dureader": {
+    "examples": 200,
+    "avg_length": 15768.04,
+    "path": "longbench_official/data/dureader.jsonl",
+    "fields": [
+      "_id",
+      "all_classes",
+      "answers",
+      "context",
+      "dataset",
+      "input",
+      "language",
+      "length"
+    ]
+  }
+}

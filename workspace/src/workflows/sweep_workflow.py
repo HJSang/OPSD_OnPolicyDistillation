@@ -9,6 +9,7 @@ Submit with (from the mldev_efficiency repo root):
     mldev run vtc_sweep -e <execution> -d <cluster> --crew-id 3330
 """
 import logging
+import json
 import os
 
 from flytekit import Secret, task, workflow  # pyright: ignore[reportMissingImports]
@@ -46,20 +47,46 @@ def run_sweep(sweep_cmd: str, run_name: str) -> None:
 
     # The experiment code ships as a resource under /home/jobuser/resources/.
     exp_dir = "/home/jobuser/resources/experiments/vtc_memory_validation"
-    nfs = os.environ.get("VTC_NFS_ROOT", "/shared/public/sharing/vtc_memory")
+    nfs = "/shared/public/sharing/vtc_memory"
 
+    sweep_cmd_literal = json.dumps(sweep_cmd)
     script = f"""#!/bin/bash
 set -euo pipefail
 cd {exp_dir}
 
 export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
-# central config (VTC_* vars); allow the caller's env to override the defaults
-export VTC_NFS_ROOT="${{VTC_NFS_ROOT:-{nfs}}}"
-source ./env.sh
 
 # data + model come from NFS staging
 mkdir -p data
-cp -n "$VTC_DATA_DIR"/*.json data/ || true
+cp -n {nfs}/data/*.json data/ || true
+cp -n longmemeval_evaluation_training_data/ultrachat_train.json data/ultrachat_train.json || true
+
+python - <<'PY'
+import os
+import re
+import subprocess
+import sys
+
+sweep_cmd = {sweep_cmd_literal}
+required = sorted(set(re.findall(r"data/[^\\s;]+\\.json", sweep_cmd)))
+missing = [path for path in required if not os.path.exists(path)]
+if "data/longmemeval_oracle.json" in missing:
+    print("[data] data/longmemeval_oracle.json missing; trying prepare_data.py")
+    subprocess.run(
+        [sys.executable, "prepare_data.py", "--skip_ultrachat", "--data_dir", "data"],
+        check=False,
+    )
+    missing = [path for path in required if not os.path.exists(path)]
+if missing:
+    sys.exit(
+        "Missing required data files: " + ", ".join(missing) + "\\n"
+        "Stage them first with:\\n"
+        "  cd experiments/vtc_memory_validation && "
+        "python prepare_data.py --stage_dir {nfs}/data"
+    )
+if required:
+    print("[data] found " + ", ".join(required))
+PY
 
 # DeepSeek-OCR runs from a prebuilt venv on NFS (transformers 4.46), invoked
 # directly via its absolute path in the sweep command — no copy/pip needed

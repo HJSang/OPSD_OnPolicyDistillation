@@ -1,0 +1,20 @@
+{
+  "_comment": "Soft-token compressor variant: FULL = our method. Default data is the bundled UltraChat subset for zero-shot LongMemEval evaluation.",
+  "name": "full_u4_a16",
+  "mode": "full",
+  "decoder": "qwen2.5-7b",
+  "factor": 8,
+  "user_factor": 4,
+  "assistant_factor": 16,
+  "enc_layers": 2,
+  "train_encoder": true,
+  "fkl_weight": 1.0,
+  "steps": 1000,
+  "n_chunks": 400,
+  "max_len": 256,
+  "batch_size": 4,
+  "lr": 1e-4,
+  "dataset": "ultrachat",
+  "data": "data/ultrachat_train.json",
+  "save": "softtoken/ckpt_full_u4_a16_zs.pt"
+}

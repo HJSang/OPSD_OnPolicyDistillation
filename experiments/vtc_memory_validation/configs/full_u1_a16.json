@@ -11,10 +11,10 @@
   "fkl_weight": 1.0,
   "steps": 1000,
   "n_chunks": 400,
-  "max_len": 2048,
-  "batch_size": 1,
+  "max_len": 256,
+  "batch_size": 4,
   "lr": 1e-4,
-  "dataset": "longmemeval",
-  "data": "data/longmemeval_oracle.json",
-  "save": "softtoken/ckpt_full_u1_a16_lme100.pt"
+  "dataset": "ultrachat",
+  "data": "data/ultrachat_train.json",
+  "save": "softtoken/ckpt_full_u1_a16_zs.pt"
 }

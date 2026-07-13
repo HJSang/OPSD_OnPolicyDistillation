@@ -67,7 +67,20 @@ The `mldev_verl_vllm_cu128_image` already has torch + transformers, but pin the 
 pip install -r requirements.txt
 ```
 
-## 3. Smoke test, then full run
+## 3. Prepare data
+
+For the zero-shot soft-token experiments, training uses a sampled UltraChat subset and evaluation uses LongMemEval:
+
+```bash
+python prepare_data.py --stage_dir /shared/public/sharing/vtc_memory/data
+```
+
+`prepare_data.py` writes `data/ultrachat_train.json` by reusing the bundled tracked
+2,000-conversation UltraChat subset in `longmemeval_evaluation_training_data/`
+unless `--refresh_ultrachat` is passed. `--stage_dir` copies this UltraChat subset
+and LongMemEval to the NFS location used by offline batch sweeps.
+
+## 4. Smoke test, then full run
 
 ```bash
 # 1) text path only, 5 items — confirms data loads + text model works
@@ -82,6 +95,12 @@ python run_validation.py --limit 30 --conditions raw,summary,vtc
 
 Output: a per-category accuracy table for each condition + mean compression ratio,
 and `results.json` with every prediction for inspection.
+
+For the UltraChat-subset → LongMemEval soft-token sweep:
+
+```bash
+mldev run vtc_sweep -e softtoken_full_u1_zeroshot -d prod-lva1-k8s-2 --crew-id 3330
+```
 
 ---
 

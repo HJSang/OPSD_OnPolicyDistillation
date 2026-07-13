@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "dsocr_debug",
+        "sweep_cmd": "echo DEBUG_START; pwd; ls -la; echo HOME=$HOME; nvidia-smi -L 2>&1 | head -2; ls /shared/public/sharing/vtc_memory/ 2>&1; echo VENV_TEST; /shared/public/sharing/vtc_memory/dsocr_env/bin/python -c 'import torch,transformers;print(\"tf\",transformers.__version__,\"cuda\",torch.cuda.is_available())' 2>&1 | tail -3; echo RUN_RECON; /shared/public/sharing/vtc_memory/dsocr_env/bin/python -u run_dsocr_reconstruct.py --dataset longmemeval --data_path data/longmemeval_oracle.json --limit 2 --shuffle --seed 0 --mode simple --base_size 1024 --render_size 1024 --font_size 16 --model_path /shared/public/sharing/vtc_memory/DeepSeek-OCR --out dsocr_cache_debug.json 2>&1 | tail -20; echo DEBUG_DONE"
+    }
+}

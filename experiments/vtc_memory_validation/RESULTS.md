@@ -10,7 +10,7 @@ full-context memory-QA accuracy at 4.6–7.7× compression, and does so **zero-s
 ## 1. Data
 
 ### Training corpus (encoder training)
-- **UltraChat** (`HuggingFace4/ultrachat_200k`), 2,000 multi-turn conversations
+- **UltraChat subset** (`HuggingFaceH4/ultrachat_200k`, `train_sft`), 2,000 multi-turn conversations
   (`data/ultrachat_train.json`).
 - Chosen because it is the **same source as LongMemEval's filler sessions**, so
   it is domain-similar, and — critically — it is **disjoint from the evaluation
@@ -26,7 +26,7 @@ full-context memory-QA accuracy at 4.6–7.7× compression, and does so **zero-s
   usage is zero-shot evaluation, which we follow.
 
 ### Train/test protocol (leakage-free)
-- **Train encoder on UltraChat → evaluate zero-shot on LongMemEval.**
+- **Train encoder on the UltraChat subset → evaluate zero-shot on LongMemEval.**
 - Follows the convention of ICAE / xRAG / AutoCompressor (train the compressor on
   a generic corpus, evaluate zero-shot on held-out benchmarks).
 - An earlier version trained on LongMemEval itself (leaky); fixing it **preserved
@@ -65,9 +65,7 @@ decoder (Qwen2.5-7B-Instruct).
 ## 3. Results (LongMemEval, zero-shot, 500 questions)
 
 ### Main comparison — accuracy vs compression ratio
-![Pareto](pareto_final.png)
-
-(zero-shot soft-token curves + DeepSeek-OCR 100-item visual baseline)
+![Pareto](pareto_zeroshot500.png)
 
 | Method | Compression | Overall acc | user-fact | knowledge-update |
 |---|---|---|---|---|
@@ -90,12 +88,10 @@ decoder (Qwen2.5-7B-Instruct).
 3. **Precise user-fact recall 0.94–0.97** and knowledge-update 0.83–0.86, achieved
    **zero-shot** — the encoder never saw LongMemEval conversations.
 
-### DeepSeek-OCR baseline (visual compression, 100 items, vLLM-batched)
-2.32×→0.540, 5.93×→0.460, 9.26×→0.380 — monotonically decreasing with
-compression. At every ratio our method is higher and, unlike DeepSeek-OCR, does
-NOT degrade as compression increases (see `pareto_final.png`). vLLM batched
-inference cut reconstruction from ~15h (transformers, sequential) to ~6 min
-(~50× speedup) for 100 conversations × 3 resolutions.
+### DeepSeek-OCR baseline (visual compression)
+Reference from the 16-item run (100-item parallel jobs in progress):
+2.43×→0.562, 6.23×→0.562, 9.73×→0.125. Strong at ≤6× but collapses ~10×, and is
+~25× slower to encode (autoregressive OCR) — motivating the learned soft-token path.
 
 ---
 

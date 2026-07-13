@@ -1,0 +1,240 @@
+### TRAIN full_u1 (lme) ###
+[st] loaded config configs/full_u1.json (name=full_u1_a16, mode=full)
+[st] loading decoder /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<01:15,  4.50it/s]Loading weights:   5%|▌         | 18/339 [00:00<00:04, 67.76it/s]Loading weights:  12%|█▏        | 42/339 [00:00<00:02, 123.78it/s]Loading weights:  19%|█▉        | 66/339 [00:00<00:01, 155.72it/s]Loading weights:  26%|██▌       | 88/339 [00:00<00:01, 174.13it/s]Loading weights:  33%|███▎      | 113/339 [00:00<00:01, 190.23it/s]Loading weights:  40%|████      | 137/339 [00:00<00:01, 198.55it/s]Loading weights:  47%|████▋     | 160/339 [00:00<00:00, 206.54it/s]Loading weights:  54%|█████▍    | 184/339 [00:01<00:00, 205.87it/s]Loading weights:  61%|██████▏   | 208/339 [00:01<00:00, 207.58it/s]Loading weights:  68%|██████▊   | 232/339 [00:01<00:00, 208.00it/s]Loading weights:  76%|███████▌  | 256/339 [00:01<00:00, 208.36it/s]Loading weights:  83%|████████▎ | 280/339 [00:01<00:00, 209.14it/s]Loading weights:  89%|████████▉ | 302/339 [00:01<00:00, 210.52it/s]Loading weights:  96%|█████████▌| 324/339 [00:01<00:00, 202.55it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 185.38it/s]
+[st] trainable params: 478.96M (factor=8, enc_layers=2)
+[st] building 400 chunks of 256 tokens
+[st] got 400 chunks
+[st][full] 2 turns, 256 tokens -> 68 soft tokens (3.8x) with user_factor=1 assistant_factor=16
+[st][full] per-turn encode + decode OK
+/home/jobuser/vtc_memory_validation/softtoken/train.py:189: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:835.)
+  f"(ppl {ppl:.1f}) | fkl {float(fkl):.3f}")
+  step    0 | recon 1.375 (ppl 4.0) | fkl 17.701
+  step    5 | recon 1.211 (ppl 3.4) | fkl 18.928
+  step   10 | recon 1.434 (ppl 4.2) | fkl 28.054
+  step   15 | recon 1.453 (ppl 4.3) | fkl 22.838
+  step   20 | recon 1.396 (ppl 4.0) | fkl 23.295
+  step   25 | recon 1.157 (ppl 3.2) | fkl 20.016
+  step   30 | recon 1.241 (ppl 3.5) | fkl 17.623
+  step   35 | recon 1.326 (ppl 3.8) | fkl 19.352
+  step   40 | recon 1.477 (ppl 4.4) | fkl 19.635
+  step   45 | recon 1.313 (ppl 3.7) | fkl 18.196
+  step   50 | recon 1.418 (ppl 4.1) | fkl 20.609
+  step   55 | recon 1.312 (ppl 3.7) | fkl 18.706
+  step   60 | recon 1.260 (ppl 3.5) | fkl 17.729
+  step   65 | recon 1.574 (ppl 4.8) | fkl 21.638
+  step   70 | recon 1.330 (ppl 3.8) | fkl 15.025
+  step   75 | recon 1.391 (ppl 4.0) | fkl 20.660
+  step   80 | recon 1.636 (ppl 5.1) | fkl 13.152
+  step   85 | recon 1.581 (ppl 4.9) | fkl 44.678
+  step   90 | recon 1.093 (ppl 3.0) | fkl 15.261
+  step   95 | recon 1.259 (ppl 3.5) | fkl 11.501
+  step  100 | recon 2.049 (ppl 7.8) | fkl 225.584
+  step  105 | recon 2.579 (ppl 13.2) | fkl 394.097
+  step  110 | recon 1.667 (ppl 5.3) | fkl 121.313
+  step  115 | recon 1.492 (ppl 4.4) | fkl 36.618
+  step  120 | recon 1.171 (ppl 3.2) | fkl 14.162
+  step  125 | recon 2.243 (ppl 9.4) | fkl 291.095
+  step  130 | recon 1.470 (ppl 4.3) | fkl 12.293
+  step  135 | recon 1.267 (ppl 3.6) | fkl 16.528
+  step  140 | recon 1.379 (ppl 4.0) | fkl 11.619
+  step  145 | recon 1.248 (ppl 3.5) | fkl 8.635
+  step  150 | recon 1.295 (ppl 3.7) | fkl 10.214
+  step  155 | recon 1.416 (ppl 4.1) | fkl 13.023
+  step  160 | recon 1.185 (ppl 3.3) | fkl 11.903
+  step  165 | recon 1.338 (ppl 3.8) | fkl 12.171
+  step  170 | recon 1.350 (ppl 3.9) | fkl 10.838
+  step  175 | recon 1.244 (ppl 3.5) | fkl 13.236
+  step  180 | recon 1.368 (ppl 3.9) | fkl 7.850
+  step  185 | recon 1.177 (ppl 3.2) | fkl 7.775
+  step  190 | recon 1.242 (ppl 3.5) | fkl 7.756
+  step  195 | recon 1.394 (ppl 4.0) | fkl 8.750
+  step  200 | recon 1.193 (ppl 3.3) | fkl 7.862
+  step  205 | recon 1.346 (ppl 3.8) | fkl 11.042
+  step  210 | recon 1.264 (ppl 3.5) | fkl 7.600
+  step  215 | recon 1.543 (ppl 4.7) | fkl 14.145
+  step  220 | recon 1.235 (ppl 3.4) | fkl 8.991
+  step  225 | recon 1.351 (ppl 3.9) | fkl 11.849
+  step  230 | recon 1.186 (ppl 3.3) | fkl 20.280
+  step  235 | recon 1.439 (ppl 4.2) | fkl 8.710
+  step  240 | recon 1.249 (ppl 3.5) | fkl 9.003
+  step  245 | recon 1.723 (ppl 5.6) | fkl 12.217
+  step  250 | recon 1.257 (ppl 3.5) | fkl 8.236
+  step  255 | recon 1.362 (ppl 3.9) | fkl 8.773
+  step  260 | recon 1.569 (ppl 4.8) | fkl 12.976
+  step  265 | recon 1.374 (ppl 4.0) | fkl 12.205
+  step  270 | recon 1.623 (ppl 5.1) | fkl 115.544
+  step  275 | recon 1.622 (ppl 5.1) | fkl 53.252
+  step  280 | recon 1.438 (ppl 4.2) | fkl 49.389
+  step  285 | recon 1.559 (ppl 4.8) | fkl 60.847
+  step  290 | recon 1.447 (ppl 4.2) | fkl 18.085
+  step  295 | recon 1.342 (ppl 3.8) | fkl 10.330
+  step  300 | recon 1.333 (ppl 3.8) | fkl 13.245
+  step  305 | recon 1.297 (ppl 3.7) | fkl 13.962
+  step  310 | recon 1.298 (ppl 3.7) | fkl 15.893
+  step  315 | recon 1.269 (ppl 3.6) | fkl 10.517
+  step  320 | recon 1.443 (ppl 4.2) | fkl 16.054
+  step  325 | recon 1.279 (ppl 3.6) | fkl 12.144
+  step  330 | recon 1.327 (ppl 3.8) | fkl 10.781
+  step  335 | recon 1.559 (ppl 4.8) | fkl 9.367
+  step  340 | recon 1.319 (ppl 3.7) | fkl 7.636
+  step  345 | recon 1.387 (ppl 4.0) | fkl 7.613
+  step  350 | recon 1.336 (ppl 3.8) | fkl 13.758
+  step  355 | recon 1.199 (ppl 3.3) | fkl 4.485
+  step  360 | recon 1.281 (ppl 3.6) | fkl 8.705
+  step  365 | recon 1.236 (ppl 3.4) | fkl 21.044
+  step  370 | recon 1.200 (ppl 3.3) | fkl 7.964
+  step  375 | recon 1.291 (ppl 3.6) | fkl 3.533
+  step  380 | recon 1.341 (ppl 3.8) | fkl 3.323
+  step  385 | recon 1.369 (ppl 3.9) | fkl 10.879
+  step  390 | recon 1.292 (ppl 3.6) | fkl 4.269
+  step  395 | recon 1.101 (ppl 3.0) | fkl 10.391
+  step  400 | recon 1.328 (ppl 3.8) | fkl 4.241
+  step  405 | recon 1.240 (ppl 3.5) | fkl 3.984
+  step  410 | recon 1.248 (ppl 3.5) | fkl 7.653
+  step  415 | recon 1.382 (ppl 4.0) | fkl 3.473
+  step  420 | recon 1.272 (ppl 3.6) | fkl 5.566
+  step  425 | recon 1.303 (ppl 3.7) | fkl 1.719
+  step  430 | recon 1.419 (ppl 4.1) | fkl 2.846
+  step  435 | recon 1.401 (ppl 4.1) | fkl 2.500
+  step  440 | recon 1.382 (ppl 4.0) | fkl 7.531
+  step  445 | recon 1.360 (ppl 3.9) | fkl 2.139
+  step  450 | recon 1.494 (ppl 4.5) | fkl 2.404
+  step  455 | recon 1.400 (ppl 4.1) | fkl 2.086
+  step  460 | recon 1.315 (ppl 3.7) | fkl 2.278
+  step  465 | recon 1.337 (ppl 3.8) | fkl 2.025
+  step  470 | recon 1.362 (ppl 3.9) | fkl 0.716
+  step  475 | recon 1.251 (ppl 3.5) | fkl 3.090
+  step  480 | recon 1.331 (ppl 3.8) | fkl 2.393
+  step  485 | recon 1.526 (ppl 4.6) | fkl 0.822
+  step  490 | recon 1.326 (ppl 3.8) | fkl 2.413
+  step  495 | recon 1.458 (ppl 4.3) | fkl 0.873
+  step  500 | recon 1.172 (ppl 3.2) | fkl 1.340
+  step  505 | recon 1.232 (ppl 3.4) | fkl 1.057
+  step  510 | recon 1.398 (ppl 4.0) | fkl 0.676
+  step  515 | recon 1.255 (ppl 3.5) | fkl 0.933
+  step  520 | recon 1.235 (ppl 3.4) | fkl 0.523
+  step  525 | recon 1.183 (ppl 3.3) | fkl 3.185
+  step  530 | recon 1.407 (ppl 4.1) | fkl 2.203
+  step  535 | recon 1.447 (ppl 4.3) | fkl 0.568
+  step  540 | recon 1.164 (ppl 3.2) | fkl 0.546
+  step  545 | recon 1.397 (ppl 4.0) | fkl 0.815
+  step  550 | recon 1.415 (ppl 4.1) | fkl 0.597
+  step  555 | recon 1.048 (ppl 2.9) | fkl 0.599
+  step  560 | recon 1.449 (ppl 4.3) | fkl 0.510
+  step  565 | recon 1.559 (ppl 4.8) | fkl 0.631
+  step  570 | recon 1.280 (ppl 3.6) | fkl 1.018
+  step  575 | recon 1.256 (ppl 3.5) | fkl 0.437
+  step  580 | recon 1.151 (ppl 3.2) | fkl 0.477
+  step  585 | recon 1.381 (ppl 4.0) | fkl 0.568
+  step  590 | recon 1.354 (ppl 3.9) | fkl 0.419
+  step  595 | recon 1.116 (ppl 3.1) | fkl 0.578
+  step  600 | recon 1.267 (ppl 3.6) | fkl 10.672
+  step  605 | recon 1.277 (ppl 3.6) | fkl 0.570
+  step  610 | recon 1.274 (ppl 3.6) | fkl 0.492
+  step  615 | recon 1.301 (ppl 3.7) | fkl 0.507
+  step  620 | recon 1.374 (ppl 4.0) | fkl 11.429
+  step  625 | recon 1.223 (ppl 3.4) | fkl 0.810
+  step  630 | recon 1.298 (ppl 3.7) | fkl 0.391
+  step  635 | recon 1.194 (ppl 3.3) | fkl 0.519
+  step  640 | recon 1.524 (ppl 4.6) | fkl 0.492
+  step  645 | recon 1.311 (ppl 3.7) | fkl 1.229
+  step  650 | recon 1.282 (ppl 3.6) | fkl 0.441
+  step  655 | recon 1.471 (ppl 4.4) | fkl 0.650
+  step  660 | recon 1.447 (ppl 4.2) | fkl 0.451
+  step  665 | recon 1.295 (ppl 3.6) | fkl 0.438
+  step  670 | recon 1.215 (ppl 3.4) | fkl 0.349
+  step  675 | recon 1.399 (ppl 4.1) | fkl 0.388
+  step  680 | recon 1.133 (ppl 3.1) | fkl 0.332
+  step  685 | recon 1.291 (ppl 3.6) | fkl 0.441
+  step  690 | recon 1.494 (ppl 4.5) | fkl 0.370
+  step  695 | recon 1.292 (ppl 3.6) | fkl 0.400
+  step  700 | recon 1.290 (ppl 3.6) | fkl 0.367
+  step  705 | recon 1.319 (ppl 3.7) | fkl 0.388
+  step  710 | recon 1.326 (ppl 3.8) | fkl 0.564
+  step  715 | recon 1.422 (ppl 4.1) | fkl 0.498
+  step  720 | recon 1.548 (ppl 4.7) | fkl 0.590
+  step  725 | recon 1.397 (ppl 4.0) | fkl 5.929
+  step  730 | recon 1.273 (ppl 3.6) | fkl 0.948
+  step  735 | recon 1.352 (ppl 3.9) | fkl 1.143
+  step  740 | recon 1.268 (ppl 3.6) | fkl 0.407
+  step  745 | recon 1.275 (ppl 3.6) | fkl 0.392
+  step  750 | recon 1.220 (ppl 3.4) | fkl 0.426
+  step  755 | recon 1.334 (ppl 3.8) | fkl 0.447
+  step  760 | recon 1.545 (ppl 4.7) | fkl 0.910
+  step  765 | recon 1.204 (ppl 3.3) | fkl 1.276
+  step  770 | recon 1.247 (ppl 3.5) | fkl 0.372
+  step  775 | recon 1.303 (ppl 3.7) | fkl 0.411
+  step  780 | recon 1.244 (ppl 3.5) | fkl 0.515
+  step  785 | recon 1.292 (ppl 3.6) | fkl 0.403
+  step  790 | recon 1.262 (ppl 3.5) | fkl 0.301
+  step  795 | recon 1.546 (ppl 4.7) | fkl 0.384
+  step  800 | recon 1.283 (ppl 3.6) | fkl 0.350
+  step  805 | recon 1.067 (ppl 2.9) | fkl 1.926
+  step  810 | recon 1.429 (ppl 4.2) | fkl 0.448
+  step  815 | recon 1.272 (ppl 3.6) | fkl 0.328
+  step  820 | recon 1.347 (ppl 3.8) | fkl 0.565
+  step  825 | recon 1.295 (ppl 3.7) | fkl 0.397
+  step  830 | recon 1.286 (ppl 3.6) | fkl 3.571
+  step  835 | recon 1.319 (ppl 3.7) | fkl 0.328
+  step  840 | recon 1.354 (ppl 3.9) | fkl 0.461
+  step  845 | recon 1.363 (ppl 3.9) | fkl 1.631
+  step  850 | recon 1.156 (ppl 3.2) | fkl 0.657
+  step  855 | recon 1.365 (ppl 3.9) | fkl 1.056
+  step  860 | recon 1.486 (ppl 4.4) | fkl 0.391
+  step  865 | recon 1.134 (ppl 3.1) | fkl 0.607
+  step  870 | recon 1.371 (ppl 3.9) | fkl 1.665
+  step  875 | recon 2.018 (ppl 7.5) | fkl 175.880
+  step  880 | recon 1.203 (ppl 3.3) | fkl 6.529
+  step  885 | recon 1.393 (ppl 4.0) | fkl 1.526
+  step  890 | recon 1.256 (ppl 3.5) | fkl 2.663
+  step  895 | recon 1.283 (ppl 3.6) | fkl 0.783
+  step  900 | recon 1.405 (ppl 4.1) | fkl 1.090
+  step  905 | recon 1.219 (ppl 3.4) | fkl 0.561
+  step  910 | recon 1.342 (ppl 3.8) | fkl 0.794
+  step  915 | recon 1.236 (ppl 3.4) | fkl 0.622
+  step  920 | recon 1.396 (ppl 4.0) | fkl 5.518
+  step  925 | recon 1.374 (ppl 4.0) | fkl 0.475
+  step  930 | recon 1.361 (ppl 3.9) | fkl 0.461
+  step  935 | recon 1.446 (ppl 4.2) | fkl 0.500
+  step  940 | recon 1.174 (ppl 3.2) | fkl 0.548
+  step  945 | recon 1.454 (ppl 4.3) | fkl 0.479
+  step  950 | recon 1.530 (ppl 4.6) | fkl 0.603
+  step  955 | recon 1.414 (ppl 4.1) | fkl 0.543
+  step  960 | recon 1.182 (ppl 3.3) | fkl 0.329
+  step  965 | recon 1.427 (ppl 4.2) | fkl 0.596
+  step  970 | recon 1.044 (ppl 2.8) | fkl 0.477
+  step  975 | recon 1.137 (ppl 3.1) | fkl 0.371
+  step  980 | recon 1.309 (ppl 3.7) | fkl 0.426
+  step  985 | recon 1.501 (ppl 4.5) | fkl 6.712
+  step  990 | recon 1.333 (ppl 3.8) | fkl 0.513
+  step  995 | recon 1.313 (ppl 3.7) | fkl 0.798
+  step  999 | recon 1.170 (ppl 3.2) | fkl 0.426
+[st] saved trainable head + encoder layers to softtoken/ckpt_full_u1_lme.pt
+### EVAL full_u1 (lme) ###
+[eval] loading decoder /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<01:14,  4.51it/s]Loading weights:   6%|▌         | 19/339 [00:00<00:04, 73.22it/s]Loading weights:  12%|█▏        | 42/339 [00:00<00:02, 127.01it/s]Loading weights:  19%|█▉        | 66/339 [00:00<00:01, 161.29it/s]Loading weights:  27%|██▋       | 90/339 [00:00<00:01, 183.20it/s]Loading weights:  34%|███▎      | 114/339 [00:00<00:01, 197.09it/s]Loading weights:  41%|████      | 138/339 [00:00<00:00, 206.74it/s]Loading weights:  48%|████▊     | 162/339 [00:00<00:00, 212.92it/s]Loading weights:  55%|█████▍    | 185/339 [00:01<00:00, 213.12it/s]Loading weights:  62%|██████▏   | 210/339 [00:01<00:00, 217.77it/s]Loading weights:  69%|██████▉   | 234/339 [00:01<00:00, 219.55it/s]Loading weights:  76%|███████▌  | 258/339 [00:01<00:00, 219.44it/s]Loading weights:  83%|████████▎ | 282/339 [00:01<00:00, 220.93it/s]Loading weights:  90%|█████████ | 306/339 [00:01<00:00, 220.11it/s]Loading weights:  97%|█████████▋| 330/339 [00:01<00:00, 221.60it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 196.98it/s]
+[eval] loaded ckpt softtoken/ckpt_full_u1_lme.pt (mode=full)
+[eval] 16 QA items
+/home/jobuser/.local/lib/python3.10/site-packages/transformers/generation/utils.py:1115: UserWarning: Passing `repetition_penalty` with `inputs_embeds` and without `input_ids` to `generate` will apply the penalty only to newly generated tokens, not to the prompt.
+  warnings.warn(
+[transformers] The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+  ... 5/16
+  ... 10/16
+  ... 15/16
+
+============ SOFTTOKEN RESULTS ============
+abstention       0.500  (n=2)
+knowledge-update 0.000  (n=2)
+multi-session    0.000  (n=4)
+single-session-assistant 0.000  (n=1)
+single-session-preference 0.000  (n=1)
+single-session-user 0.000  (n=2)
+temporal-reasoning 0.250  (n=4)
+OVERALL          0.125
+mean compression: 6.33x
+[eval] wrote results_lme_softtoken_full_u1.json
+U1 DONE

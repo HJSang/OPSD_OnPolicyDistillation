@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "raw_summary_lme100",
+        "sweep_cmd": "python -u run_validation.py --dataset longmemeval --data_path data/longmemeval_oracle.json --conditions raw,summary --limit 100 --shuffle --seed 0 --text_model qwen2.5-7b --out results_lme100_raw_summary.json"
+    }
+}

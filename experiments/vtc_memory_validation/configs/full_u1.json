@@ -1,0 +1,20 @@
+{
+  "_comment": "Soft-token FULL variant with user_factor=1: user messages kept (near) lossless (1 soft token per token), assistant chatter compressed 16x. Tests the extreme of our thesis: preserve user facts, compress assistant.",
+  "name": "full_u1_a16",
+  "mode": "full",
+  "decoder": "qwen2.5-7b",
+  "factor": 8,
+  "user_factor": 1,
+  "assistant_factor": 16,
+  "enc_layers": 2,
+  "train_encoder": true,
+  "fkl_weight": 1.0,
+  "steps": 1000,
+  "n_chunks": 400,
+  "max_len": 256,
+  "batch_size": 4,
+  "lr": 1e-4,
+  "dataset": "ultrachat",
+  "data": "data/ultrachat_train.json",
+  "save": "softtoken/ckpt_full_u1_zs.pt"
+}

@@ -1,0 +1,223 @@
+{
+  "config": {
+    "_comment": "Soft-token compressor variant: SIMPLE = uniform gated pooling over the whole input (baseline / current prototype).",
+    "name": "simple_f8",
+    "mode": "simple",
+    "decoder": "qwen2.5-7b",
+    "factor": 8,
+    "enc_layers": 2,
+    "train_encoder": true,
+    "fkl_weight": 1.0,
+    "steps": 1000,
+    "n_chunks": 400,
+    "max_len": 256,
+    "batch_size": 4,
+    "lr": 0.0001,
+    "dataset": "locomo",
+    "data": "data/locomo10.json",
+    "save": "softtoken/ckpt_simple_f8.pt"
+  },
+  "ckpt": "softtoken/ckpt_simple_f8.pt",
+  "records": [
+    {
+      "i": 0,
+      "category": "temporal",
+      "question": "When did Caroline go to the LGBTQ support group?",
+      "gold": "7 May 2023",
+      "pred": "fe Answer the\n1\n Answer the\n\n\n\n\n\n\n1 Answer the question using only the information provided in the \\n the conversation above. \\n\n\n \\n1. 1 \\n1. 1. 1. 1.0 \\n1. 1. 1",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 1,
+      "category": "temporal",
+      "question": "When did Melanie paint a sunrise?",
+      "gold": "2022",
+      "pred": "fe Answer the Answer: Answer: Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer Answer",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 2,
+      "category": "open_domain",
+      "question": "What fields would Caroline be likely to pursue in her educaton?",
+      "gold": "Psychology, counseling certification",
+      "pred": "fe Caroline 21,fe Caroline\n\nol\n1,,,,,s Caroline.\ns Caroline.s Caroline\\n14141414141414141414141414141414141414",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 3,
+      "category": "multi_hop",
+      "question": "What did Caroline research?",
+      "gold": "Adoption agencies",
+      "pred": "fe.\n1\n1\n1\n1\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n14\n\n\n\n1414\n\n\n141\n\n141\n141\n141\n141\n141\n1",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 4,
+      "category": "multi_hop",
+      "question": "What is Caroline's identity?",
+      "gold": "Transgender woman",
+      "pred": "fe12\nfe,1fe\n111,fe14014014014014014014014014014014014014014014014014",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 5,
+      "category": "temporal",
+      "question": "When did Melanie run a charity race?",
+      "gold": "The sunday before 25 May 2023",
+      "pred": "fe\n1fe.\nAnswer the2.\n101.\n115141141141141411414114141141141141141141141141141",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 6,
+      "category": "temporal",
+      "question": "When is Melanie planning on going camping?",
+      "gold": "June 2023",
+      "pred": "fe.\n12\n1\n1\n\n\n\n\n\n\n\n\n\n\n14.\n\n1014 *1\n\n14 *10141010101010101010101010101",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 7,
+      "category": "multi_hop",
+      "question": "What is Caroline's relationship status?",
+      "gold": "Single",
+      "pred": "fe.1fe\n12\n2\nfe1\n201420141111111111112020141414141414141414141414141",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 8,
+      "category": "temporal",
+      "question": "When did Caroline give a speech at a school?",
+      "gold": "The week before 9 June 2023",
+      "pred": "fe.\n1\n1\n1\n\n\n\n\n\n\n\n\n\n\n\n\n14\n\n\n100000000000000000000000000000000000000",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 9,
+      "category": "temporal",
+      "question": "When did Caroline meet up with her friends, family, and mentors?",
+      "gold": "The week before 9 June 2023",
+      "pred": "fe\nfe1,211,fe1 *11111110111.\n1111111111111111111111111111111111111111",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 10,
+      "category": "temporal",
+      "question": "How long has Caroline had her current group of friends for?",
+      "gold": "4 years",
+      "pred": "fe.\n Answer the21\nAnswer Answer: Answer the\n Answer Answer:  Answer the question using only the information provided in the2020201414141414141414141414141414141",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 11,
+      "category": "multi_hop",
+      "question": "Where did Caroline move from 4 years ago?",
+      "gold": "Sweden",
+      "pred": "fe.\n1fe.fe0141414141414141414141414141414141414141414141414141414141",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 12,
+      "category": "temporal",
+      "question": "How long ago was Caroline's 18th birthday?",
+      "gold": "10 years ago",
+      "pred": "1fe\nfe1,fe,fe1014111111111111111111111111111111111111111111111111111",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 13,
+      "category": "multi_hop",
+      "question": "What career path has Caroline decided to persue?",
+      "gold": "counseling or mental health for Transgender people",
+      "pred": "fe Answer the\n Answer Answer\n\nfe Answer  Answer1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer 1 Answer",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 14,
+      "category": "open_domain",
+      "question": "Would Caroline still want to pursue counseling as a career if she hadn't received support growing up?",
+      "gold": "Likely no",
+      "pred": "fe\n\nfe up\nfe5014141414145145141414141414141414141414141414141414141414",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 15,
+      "category": "multi_hop",
+      "question": "What activities does Melanie partake in?",
+      "gold": "pottery, camping, painting, swimming",
+      "pred": "fe\nfe.12\n1,111121111\n141414141414141414141414141414141414141414141",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 16,
+      "category": "temporal",
+      "question": "When did Melanie sign up for a pottery class?",
+      "gold": "2 July 2023",
+      "pred": "fe Answer the\n1fe\nfe1101\nfe11011001101101101101110111011101110111011101110111",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 17,
+      "category": "temporal",
+      "question": "When is Caroline going to the transgender conference?",
+      "gold": "July 2023",
+      "pred": "fe\n12,n\n \\n1 \\ \\1 \\n \\1 \\n \\1 \\n \\n \\1 \\n \\1 \\n \\1 \\n \\1 \\n \\1 \\n \\1 \\n \\1 \\n \\1 \\n \\1 \\n \\1 \\",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 18,
+      "category": "multi_hop",
+      "question": "Where has Melanie camped?",
+      "gold": "beach, mountains, forest",
+      "pred": "fe,1,1,1,,,,,,,,,,,,,,,,,,,,,,,,,,,,14000000140140140014001400001",
+      "ok": true,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    },
+    {
+      "i": 19,
+      "category": "multi_hop",
+      "question": "What do Melanie's kids like?",
+      "gold": "dinosaurs, nature",
+      "pred": "fe.,/\n\u8bf4\u5b9e.fe.ol,12,fe1011,fe1415141411111111114151414141414141414141414",
+      "ok": false,
+      "tokens": 16834,
+      "soft_tokens": 2105
+    }
+  ]
+}

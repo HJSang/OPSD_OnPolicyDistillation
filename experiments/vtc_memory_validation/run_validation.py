@@ -54,31 +54,22 @@ CATEGORY_NAMES = {
 }
 
 # --------------------------------------------------------------------------- #
-# Model registry: short name -> path. Roots come from env vars (see env.sh) so
-# the same code runs in a new environment by exporting VTC_MODELS_ROOT etc.
-# Override individual entries via models.json. Pass `--text_model qwen3-4b`.
+# Model registry: short name -> path. Extend via models.json (see resolve_model)
+# so you can pass e.g. `--text_model qwen3-4b` instead of a long NFS path.
 # --------------------------------------------------------------------------- #
-_MODELS = os.environ.get("VTC_MODELS_ROOT", "/shared/public/models")
-_ELR = os.environ.get("VTC_ELR_MODELS_ROOT", "/shared/public/elr-models")
-_NFS = os.environ.get("VTC_NFS_ROOT", "/shared/public/sharing/vtc_memory")
-
 MODEL_REGISTRY = {
     # ---- text readers ----
-    "qwen2.5-7b": os.environ.get("VTC_QWEN25_7B",
-                                 f"{_MODELS}/Qwen/Qwen2.5-7B-Instruct"),
-    "qwen3-4b": f"{_ELR}/Qwen/Qwen3-4B-Instruct-2507/"
+    "qwen2.5-7b": "/shared/public/models/Qwen/Qwen2.5-7B-Instruct",
+    "qwen3-4b": "/shared/public/elr-models/Qwen/Qwen3-4B-Instruct-2507/"
                 "eb25fbe4f35f7147763bc24445679d1c00588d89",
-    "qwen3.5-4b": f"{_ELR}/Qwen/Qwen3.5-4B/"
+    "qwen3.5-4b": "/shared/public/elr-models/Qwen/Qwen3.5-4B/"
                   "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
-    "qwen3-8b": f"{_MODELS}/liha_candidate_eval/v1_0_2_QWEN3_8B",
-    "qwen3-1.7b": f"{_MODELS}/liha_candidate_eval/v1_0_3_QWEN3_1_7B",
-    "qwen3-14b": f"{_ELR}/Qwen/Qwen3-14B/"
-                 "40c069824f4251a91eefaf281ebe4c544efd3e18",
+    "qwen3-8b": "/shared/public/models/liha_candidate_eval/v1_0_2_QWEN3_8B",
     # ---- vision-language (VTC) ----
-    "qwen2.5-vl-7b": f"{_ELR}/Qwen/Qwen2.5-VL-7B-Instruct/"
+    "qwen2.5-vl-7b": "/shared/public/elr-models/Qwen/Qwen2.5-VL-7B-Instruct/"
                      "cc594898137f460bfe9f0759e9844b3ce807cfb5",
-    # ---- visual compressor ----
-    "deepseek-ocr": os.environ.get("VTC_DEEPSEEK_OCR", f"{_NFS}/DeepSeek-OCR"),
+    # ---- visual compressor (used by run_dsocr_reconstruct.py) ----
+    "deepseek-ocr": "~/models/DeepSeek-OCR",
 }
 
 
@@ -107,6 +98,12 @@ def load_json(data_path_or_url):
     if os.path.exists(data_path_or_url):
         with open(data_path_or_url) as f:
             return json.load(f)
+    if not re.match(r"https?://", data_path_or_url):
+        raise FileNotFoundError(
+            f"Data file not found: {data_path_or_url}. Run "
+            "`python prepare_data.py` in experiments/vtc_memory_validation, "
+            "or pass a valid local path/URL."
+        )
     print(f"[data] downloading from {data_path_or_url}")
     with urllib.request.urlopen(data_path_or_url) as resp:
         return json.loads(resp.read().decode("utf-8"))
@@ -205,7 +202,7 @@ def iter_qa_ultrachat(dataset, limit_per_sample=None):
     whose conv_text is the flattened dialogue; question/gold/category are empty.
     Used only by make_chunks / full-mode turn extraction during training."""
     for i, inst in enumerate(dataset):
-        turns = inst.get("turns", [])
+        turns = inst.get("turns") or inst.get("messages") or []
         lines = [f"{t.get('role','user')}: {t.get('content','')}" for t in turns]
         conv_text = "\n".join(lines)
         yield i, conv_text, "", "", "train"

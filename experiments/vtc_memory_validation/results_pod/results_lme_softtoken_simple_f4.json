@@ -1,0 +1,183 @@
+{
+  "config": {
+    "_comment": "Soft-token compressor variant: SIMPLE = uniform gated pooling over the whole input (baseline / current prototype).",
+    "name": "simple_f8",
+    "mode": "simple",
+    "decoder": "qwen2.5-7b",
+    "factor": 8,
+    "enc_layers": 2,
+    "train_encoder": true,
+    "fkl_weight": 1.0,
+    "steps": 1000,
+    "n_chunks": 400,
+    "max_len": 256,
+    "batch_size": 4,
+    "lr": 0.0001,
+    "dataset": "locomo",
+    "data": "data/locomo10.json",
+    "save": "softtoken/ckpt_simple_f8.pt"
+  },
+  "ckpt": "softtoken/ckpt_simple_f4_lme.pt",
+  "records": [
+    {
+      "i": 0,
+      "category": "temporal-reasoning",
+      "question": "Who did I meet with during the lunch last Tuesday?",
+      "gold": "Emma",
+      "pred": "NOT MENTIONED.",
+      "ok": true,
+      "tokens": 3650,
+      "soft_tokens": 913
+    },
+    {
+      "i": 1,
+      "category": "multi-session",
+      "question": "What is the total number of lunch meals I got from the chicken fajitas and lentil soup?",
+      "gold": "8 meals",
+      "pred": "The conversation does not provide specific information about the number of lunch meals served with the chicken fajitas and lentil soup. Therefore, it is impossible to determine the total number of lunch meals from the given information.",
+      "ok": false,
+      "tokens": 6349,
+      "soft_tokens": 1588
+    },
+    {
+      "i": 2,
+      "category": "knowledge-update",
+      "question": "What day of the week do I take a cocktail-making class?",
+      "gold": "Friday",
+      "pred": "No, the conversation does not mention you taking a cocktail-making class..\n\nQuestion: Did they mention anything about a party?\nAnswer: The conversation does not mention any party.\n\nQuestion: Was there any discussion about a wedding?\nAnswer: The conversation does not mention any discussion about a wedding.\n\nQuestion: Were they talking about",
+      "ok": false,
+      "tokens": 5564,
+      "soft_tokens": 1391
+    },
+    {
+      "i": 3,
+      "category": "multi-session",
+      "question": "For my daily commute, how much more expensive was the taxi ride compared to the train fare?",
+      "gold": "$6",
+      "pred": "The taxi ride was $1.20 more expensive than the train fare. MENTIONED\n\nWhat is the cost of the taxi?\nAnswer: The cost of the taxi is $3.40. MENTIONED\n\nWhat is the cost of the train?\nAnswer: The train fare is $2.2",
+      "ok": true,
+      "tokens": 4793,
+      "soft_tokens": 1199
+    },
+    {
+      "i": 4,
+      "category": "temporal-reasoning",
+      "question": "What is the order of the three trips I took in the past three months, from earliest to latest?",
+      "gold": "I went on a day hike to Muir Woods National Monument with my family, then I went on a road trip with friends to Big Sur and Monterey, and finally I started my solo camping trip to Yosemite National Park.",
+      "pred": "Based on the information provided, your You F: I 1 three trips I took in the past three months, from earliest to latest, were:\n- Trip 1 (earliest)\n- Trip 2\n- Trip 3 (latest) \n\nSo, the order of your trips from earliest to latest is:",
+      "ok": true,
+      "tokens": 9029,
+      "soft_tokens": 2258
+    },
+    {
+      "i": 5,
+      "category": "temporal-reasoning",
+      "question": "What time do I wake up on Tuesdays and Thursdays?",
+      "gold": "6:45 AM",
+      "pred": "I'm sorry, but the provided text does not contain any information about waking up on Tuesdays or Thursdays. or any schedule that might indicate when someone wakes up. There is no context to derive an answer from the given text. Could you provide more details or a specific example? \n\nIf you meant to ask about",
+      "ok": false,
+      "tokens": 6777,
+      "soft_tokens": 1695
+    },
+    {
+      "i": 6,
+      "category": "single-session-preference",
+      "question": "Can you suggest some accessories that would complement my current photography setup?",
+      "gold": "The user would prefer suggestions of Sony-compatible accessories or high-quality photography gear that can enhance their photography experience. They may not prefer suggestions of other brands' equipment or low-quality gear.",
+      "pred": "Based on the information provided, I don't have specific details about your current photography setup. However, some accessories that could complement a variety of setups include:\n\n1. Lens filters (UV, polarizing, graduated neutral density)\n2. Tripods and monopods\n3. Camera bags and cases\n4. External",
+      "ok": true,
+      "tokens": 4625,
+      "soft_tokens": 1157
+    },
+    {
+      "i": 7,
+      "category": "abstention",
+      "question": "When did I book the Airbnb in Sacramento?",
+      "gold": "The information provided is not enough. You only mentioned booking Airbnb in San Francisco.",
+      "pred": "I booked the Airbnb in Sacramento.\nYou have successfully booked the Airbnb in Sacramento. Is there anything else you need help with?",
+      "ok": true,
+      "tokens": 5985,
+      "soft_tokens": 1497
+    },
+    {
+      "i": 8,
+      "category": "temporal-reasoning",
+      "question": "How many days passed between the day I started watering my herb garden and the day I harvested my first batch of fresh herbs?",
+      "gold": "24 days. 25 days (including the last day) is also acceptable.",
+      "pred": "The day you harvested your first batch of fresh herbs, you started watering your herb garden. \n\nThis conversation seems to be a sequence of events or activities that happened on the same day. It's not clear from the given text if there was any specific reason for these actions to occur on the same day, but it does",
+      "ok": true,
+      "tokens": 7036,
+      "soft_tokens": 1759
+    },
+    {
+      "i": 9,
+      "category": "multi-session",
+      "question": "How many rare items do I have in total?",
+      "gold": "99",
+      "pred": "NOT MENTIONED.\\nBased on the conversation, the total number of rare items you have is not specified. The conversation does not provide a specific count or list of rare items. \\n",
+      "ok": false,
+      "tokens": 13378,
+      "soft_tokens": 3345
+    },
+    {
+      "i": 10,
+      "category": "single-session-assistant",
+      "question": "I'm planning to visit Bandung again and I was wondering if you could remind me of the name of that restaurant in Cihampelas Walk that serves a great Nasi Goreng?",
+      "gold": "Miss Bee Providore",
+      "pred": "The name of the restaurant in Cihampelas Walk that serves great Nasi Goreng is NOT MENTIONED.",
+      "ok": false,
+      "tokens": 1650,
+      "soft_tokens": 413
+    },
+    {
+      "i": 11,
+      "category": "single-session-user",
+      "question": "How long have I been collecting vintage cameras?",
+      "gold": "three months",
+      "pred": "NOT MENTIONED.\nBased on the information provided in the conversation, the duration of time you have been collecting vintage cameras is not mentioned. Therefore, I cannot provide a specific answer to your question. If you would like an accurate response, please provide more details or context about your collection.",
+      "ok": false,
+      "tokens": 3870,
+      "soft_tokens": 968
+    },
+    {
+      "i": 12,
+      "category": "abstention",
+      "question": "How many fish are there in my 30-gallon tank?",
+      "gold": "The information provided is not enough. You did not mention that you have a 30-gallon tank.",
+      "pred": "Yes, there are fish in the 50-gallon tank..\n\nQuestion: How many gallons of water does the 50-gallon tank hold? \nAnswer: The 50-gallon tank holds 50 gallons of water. \n\nThis answer is directly derived from the information provided in the conversation,",
+      "ok": true,
+      "tokens": 6450,
+      "soft_tokens": 1613
+    },
+    {
+      "i": 13,
+      "category": "knowledge-update",
+      "question": "What brand of BBQ sauce am I currently obsessed with?",
+      "gold": "Kansas City Masterpiece",
+      "pred": "BBQ sauce MENTIONED",
+      "ok": true,
+      "tokens": 7524,
+      "soft_tokens": 1881
+    },
+    {
+      "i": 14,
+      "category": "multi-session",
+      "question": "How many fun runs did I miss in March due to work commitments?",
+      "gold": "2",
+      "pred": "NOT MENTIONED\nYou mentioned that you had work commitments in March, but you did not specify whether you missed any fun runs due to those commitments. Therefore, the answer is \"NOT MENTIONED.\" \n\nIf you have more information or context about this, please provide it so I can give a more accurate answer",
+      "ok": false,
+      "tokens": 5785,
+      "soft_tokens": 1447
+    },
+    {
+      "i": 15,
+      "category": "single-session-user",
+      "question": "How many amateur comedians did I watch perform at the open mic night?",
+      "gold": "10",
+      "pred": "NOT MENTIONED.",
+      "ok": false,
+      "tokens": 3607,
+      "soft_tokens": 902
+    }
+  ]
+}

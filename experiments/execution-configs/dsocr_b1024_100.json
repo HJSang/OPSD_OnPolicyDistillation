@@ -1,6 +1,6 @@
 {
     "inputs": {
-        "run_name": "dsocr_b1024_lme500_vllm",
-        "sweep_cmd": "cp $VTC_RESULTS_DIR/dsocr_cache_lme500_b1024.json . 2>/dev/null || $VTC_VLLM_PY -u run_dsocr_vllm.py --dataset longmemeval --data_path data/longmemeval_oracle.json --limit 500 --shuffle --seed 0 --base_size 1024 --render_size 1024 --font_size 16 --out dsocr_cache_lme500_b1024.json; cp dsocr_cache_lme500_b1024.json $VTC_RESULTS_DIR/ 2>/dev/null; python -u run_validation.py --dataset longmemeval --data_path data/longmemeval_oracle.json --conditions dsocr --limit 500 --shuffle --seed 0 --dsocr_cache dsocr_cache_lme500_b1024.json --text_model qwen2.5-7b --out results_lme500_dsocr_b1024.json; cp results_lme500_dsocr_b1024.json $VTC_RESULTS_DIR/"
+        "run_name": "dsocr_b1024_lme100",
+        "sweep_cmd": "/shared/public/sharing/vtc_memory/dsocr_env/bin/python -u run_dsocr_reconstruct.py --dataset longmemeval --data_path data/longmemeval_oracle.json --limit 100 --shuffle --seed 0 --mode simple --base_size 1024 --render_size 1024 --font_size 16 --model_path /shared/public/sharing/vtc_memory/DeepSeek-OCR --out dsocr_cache_lme100_b1024.json; cp dsocr_cache_lme100_b1024.json /shared/public/sharing/vtc_memory/results/"
     }
 }

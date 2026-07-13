@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "dsocr_debug2",
+        "sweep_cmd": "L=/shared/public/sharing/vtc_memory/results/debug2.log; { echo START; date; pwd; echo HOME=$HOME; echo '--- gpu ---'; nvidia-smi -L 2>&1 | head; echo '--- nfs ---'; ls /shared/public/sharing/vtc_memory/ 2>&1; echo '--- expdir ---'; ls -la; echo '--- venv ---'; /shared/public/sharing/vtc_memory/dsocr_env/bin/python -c 'import torch,transformers;print(\"tf\",transformers.__version__,\"cuda\",torch.cuda.is_available())' 2>&1; echo '--- data ---'; ls -la data/ 2>&1; echo DONE; date; } > $L 2>&1; echo wrote $L"
+    }
+}

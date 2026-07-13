@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "softtoken_full_debug2",
+        "sweep_cmd": "L=/shared/public/sharing/vtc_memory/results/fulldbg2.log; echo STEP0_start > $L; date >> $L; echo 'STEP1 pwd:' >> $L; pwd >> $L 2>&1; echo 'STEP2 configs:' >> $L; ls configs/ >> $L 2>&1; echo 'STEP3 python+torch:' >> $L; python -c 'import torch,transformers;print(torch.__version__,transformers.__version__,torch.cuda.is_available())' >> $L 2>&1; echo 'STEP4 import compressor:' >> $L; python -c 'import sys; sys.path.insert(0,\".\"); from softtoken.compressor import SoftTokenCompressor; print(\"compressor OK\")' >> $L 2>&1; echo 'STEP5 train 3 steps:' >> $L; python -u softtoken/train.py --config configs/full.json --dataset longmemeval --data data/longmemeval_oracle.json --steps 3 --n_chunks 8 --save /tmp/c.pt >> $L 2>&1; echo EXIT=$? >> $L; echo DONE >> $L; echo wrote"
+    }
+}

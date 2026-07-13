@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "lb_longmemeval_f8_longbench",
+        "sweep_cmd": "DECODER=qwen2.5-7b CONFIG=configs/lb_longmemeval_taskadapt_f8.json FACTOR=8 DATA=longbench_evaluation_training_data/longmemeval_qa_train.json CKPT=softtoken/ckpt_lb_longmemeval_taskadapt_f8.pt RUN_NAME=lb_longmemeval_f8_longbench DATASETS=narrativeqa,qasper,multifieldqa_en,hotpotqa,2wikimqa,musique bash longbench_official/jobs/train_eval_softtoken_longbench.sh"
+    }
+}

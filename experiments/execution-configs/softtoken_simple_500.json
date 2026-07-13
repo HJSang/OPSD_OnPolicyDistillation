@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "softtoken_simple_lme500",
+        "sweep_cmd": "for F in 4 8 16; do python -u softtoken/train.py --config configs/simple.json --factor $F --dataset longmemeval --data data/longmemeval_oracle.json --save softtoken/ckpt_simple_f${F}_500.pt; python -u softtoken/eval_softtoken.py --config configs/simple.json --factor $F --ckpt softtoken/ckpt_simple_f${F}_500.pt --dataset longmemeval --data data/longmemeval_oracle.json --limit 500 --shuffle --seed 0 --out results_lme500_softtoken_simple_f${F}.json; done"
+    }
+}

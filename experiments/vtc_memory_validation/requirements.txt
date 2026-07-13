@@ -4,3 +4,4 @@ torch
 pillow
 qwen-vl-utils
 accelerate
+datasets>=2.18.0

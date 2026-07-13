@@ -1,6 +1,0 @@
-{
-    "inputs": {
-        "run_name": "dsocr_locomo500_qwen2p5_7b",
-        "sweep_cmd": "for BS in 1024 640 512; do cp $VTC_RESULTS_DIR/dsocr_cache_locomo500_b${BS}.json . 2>/dev/null || echo MISSING_CACHE_b${BS}; python -u run_validation.py --dataset locomo --data_path data/locomo10.json --conditions dsocr --limit 500 --shuffle --seed 0 --dsocr_cache dsocr_cache_locomo500_b${BS}.json --text_model qwen2.5-7b --out results_locomo500_dsocr_qwen2p5_7b_b${BS}.json; cp results_locomo500_dsocr_qwen2p5_7b_b${BS}.json $VTC_RESULTS_DIR/; done"
-    }
-}

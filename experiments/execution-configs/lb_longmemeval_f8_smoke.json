@@ -1,0 +1,6 @@
+{
+    "inputs": {
+        "run_name": "lb_longmemeval_f8_smoke",
+        "sweep_cmd": "mkdir -p /shared/public/sharing/vtc_memory/results; L=/shared/public/sharing/vtc_memory/results/lb_longmemeval_f8_smoke.log; { set -x; python -u softtoken/train.py --config configs/lb_longmemeval_taskadapt_f8.json --decoder qwen2.5-7b --factor 8 --data longbench_evaluation_training_data/longmemeval_qa_train.json --steps 1 --qa_accum 1 --max_len 512 --save softtoken/ckpt_lb_longmemeval_f8_smoke.pt && python -u longbench_official/pred_softtoken.py --datasets narrativeqa --condition softtoken --run_name lb_longmemeval_f8_smoke --decoder qwen2.5-7b --softtoken_ckpt softtoken/ckpt_lb_longmemeval_f8_smoke.pt --factor 8 --enc_window 512 --limit 1 && (cd longbench_official/official_eval && python -u eval.py --model lb_longmemeval_f8_smoke) && cp longbench_official/official_eval/pred/lb_longmemeval_f8_smoke/result.json /shared/public/sharing/vtc_memory/results/result_lb_longmemeval_f8_smoke.json && cat /shared/public/sharing/vtc_memory/results/result_lb_longmemeval_f8_smoke.json; } > $L 2>&1"
+    }
+}

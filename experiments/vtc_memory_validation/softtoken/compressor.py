@@ -25,16 +25,8 @@ import torch.nn.functional as F
 
 
 class SoftTokenCompressor(nn.Module):
-    def __init__(self, decoder, factor=8, enc_layers=2, train_encoder=False):
-        """
-        decoder: a loaded HF CausalLM (frozen). Must expose
-                 .model.embed_tokens and .model.layers (Qwen2/Llama-style).
-        factor:  compression ratio (N -> N/factor soft tokens).
-        enc_layers: how many of the decoder's bottom layers to reuse as encoder.
-        """
-        super().__init__()
     def __init__(self, decoder, factor=8, enc_layers=2, train_encoder=False,
-                 mode="simple", role_factors=None):
+                 mode="simple", role_factors=None, pool_mode="mean"):
         """
         decoder: a loaded HF CausalLM (frozen). Must expose
                  .model.embed_tokens and .model.layers (Qwen2/Llama-style).
@@ -74,6 +66,30 @@ class SoftTokenCompressor(nn.Module):
         self.adapter = nn.Linear(d, d, bias=False)
         self.gate = nn.Linear(d, 1)
 
+        # Pooling head. "mean" = the original non-parametric average over each
+        # group of `factor` tokens. "attn" = one learnable query-based attention
+        # pool. "attn4" = four independent attention pools whose outputs are
+        # averaged, increasing capacity where compression loses facts (pooling)
+        # while still emitting exactly one soft token per group.
+        self.pool_mode = pool_mode
+        self.pool_heads = 0
+        self.pool_keys = None
+        if pool_mode.startswith("attn"):
+            suffix = pool_mode[len("attn"):]
+            self.pool_heads = int(suffix) if suffix else 1
+        if self.pool_heads == 1:
+            self.pool_key = nn.Linear(d, d)
+            self.pool_query = nn.Parameter(torch.zeros(d))
+        elif self.pool_heads > 1:
+            self.pool_keys = nn.ModuleList([
+                nn.Linear(d, d) for _ in range(self.pool_heads)
+            ])
+            self.pool_query = nn.Parameter(torch.zeros(self.pool_heads, d))
+            self.pool_key = None
+        else:
+            self.pool_key = None
+            self.pool_query = None
+
         # freeze decoder
         for p in self.decoder.parameters():
             p.requires_grad_(False)
@@ -86,10 +102,33 @@ class SoftTokenCompressor(nn.Module):
         nn.init.zeros_(self.gate.weight)
         nn.init.constant_(self.gate.bias, -2.0)  # sigmoid(-2)~0.12
 
+        # init attention pool to reproduce mean pooling exactly: zero the key
+        # projection so every token in a group gets an equal score -> uniform
+        # softmax -> average. Training then learns to deviate toward salience.
+        if self.pool_heads == 1:
+            nn.init.zeros_(self.pool_key.weight)
+            nn.init.zeros_(self.pool_key.bias)
+        elif self.pool_heads > 1:
+            for pool_key in self.pool_keys:
+                nn.init.zeros_(pool_key.weight)
+                nn.init.zeros_(pool_key.bias)
+
         # keep the trainable head in fp32 for stable optimization; cast its
         # inputs/outputs around the frozen bf16 decoder as needed.
         self.adapter.to(torch.float32)
         self.gate.to(torch.float32)
+        if self.pool_heads == 1:
+            self.pool_key.to(torch.float32)
+        elif self.pool_heads > 1:
+            self.pool_keys.to(torch.float32)
+
+        # When we TRAIN the borrowed encoder layers, run them in fp32. In bf16
+        # the attention backward over long (thousands-of-token) sequences
+        # underflows and produces NaN gradients; the two small encoder layers are
+        # cheap enough to keep in fp32, which makes long-context training stable.
+        self.enc_fp32 = bool(train_encoder)
+        if self.enc_fp32:
+            self.layers.to(torch.float32)
 
     @property
     def device(self):
@@ -102,12 +141,23 @@ class SoftTokenCompressor(nn.Module):
         self.gate.load_state_dict(ck["gate"])
         if "enc_layers" in ck:
             self.layers.load_state_dict(ck["enc_layers"])
+        if self.pool_heads > 1 and "pool_keys" in ck:
+            self.pool_keys.load_state_dict(ck["pool_keys"])
+            with torch.no_grad():
+                self.pool_query.copy_(ck["pool_query"])
+        elif self.pool_heads == 1 and "pool_key" in ck:
+            self.pool_key.load_state_dict(ck["pool_key"])
+            with torch.no_grad():
+                self.pool_query.copy_(ck["pool_query"])
         return ck.get("args", {})
 
     def _fuse(self, input_ids, attention_mask):
         """Embed -> borrowed encoder layers -> gated fuse. Returns fused (B,N,d)."""
         emb = self.embed_tokens(input_ids)             # (B, N, d)
         hidden = emb
+        enc_dtype = torch.float32 if getattr(self, "enc_fp32", False) else emb.dtype
+        if enc_dtype != hidden.dtype:
+            hidden = hidden.to(enc_dtype)
         pos_ids = torch.arange(input_ids.shape[1], device=input_ids.device
                                ).unsqueeze(0).expand(input_ids.shape[0], -1)
         pos_emb = self.rotary_emb(hidden, pos_ids) if self.rotary_emb else None
@@ -120,6 +170,14 @@ class SoftTokenCompressor(nn.Module):
         alpha = torch.sigmoid(self.gate(hidden.float()))        # (B, N, 1) fp32
         fused = alpha * self.adapter(hidden.float()) + (1 - alpha) * emb.float()
         return fused.to(emb.dtype)
+
+    def _pool(self, x, factor):
+        """Compress (B, N, d) -> (B, ceil(N/factor), d) by pooling every
+        `factor` tokens. Dispatches to mean or learnable attention pooling."""
+        if self.pool_heads:
+            key_proj = self.pool_keys if self.pool_heads > 1 else self.pool_key
+            return _attn_pool_tokens(x, factor, self.pool_query, key_proj)
+        return _avg_pool_tokens(x, factor)
 
     def encode(self, input_ids, attention_mask=None, segments=None):
         """input_ids: (B, N) -> soft tokens.
@@ -135,7 +193,7 @@ class SoftTokenCompressor(nn.Module):
         fused = self._fuse(input_ids, attention_mask)  # (B, N, d)
 
         if self.mode == "simple" or segments is None:
-            return _avg_pool_tokens(fused, self.factor)  # (B, M, d)
+            return self._pool(fused, self.factor)  # (B, M, d)
 
         # full mode: pool each session/turn segment independently by role.
         # If a role's factor == 1 we keep the RAW token embeddings (bypass the
@@ -151,10 +209,38 @@ class SoftTokenCompressor(nn.Module):
                     parts.append(raw_emb[b, start:end])          # (L, d) lossless
                 else:
                     seg = fused[b, start:end].unsqueeze(0)       # (1, L, d)
-                    parts.append(_avg_pool_tokens(seg, f)[0])    # (ceil(L/f), d)
+                    parts.append(self._pool(seg, f)[0])          # (ceil(L/f), d)
             out.append(torch.cat(parts, dim=0) if parts
                        else fused[b, :0])
         return out  # list of (M_i, d)
+
+    def encode_long(self, input_ids, attention_mask=None, window=512):
+        """Encode a long (1, N) sequence by splitting it into `window`-token
+        windows, pooling each window independently, and concatenating the
+        per-window soft tokens into one long memory (1, M, d).
+
+        This keeps the borrowed-encoder pass bounded to `window` tokens (so it
+        never runs over an out-of-distribution context length) while still
+        producing the long soft-token memory the decoder must read at eval on
+        long conversations. simple mode only.
+        """
+        if attention_mask is None:
+            attention_mask = torch.ones_like(input_ids)
+        N = input_ids.shape[1]
+        parts = []
+        for s in range(0, N, window):
+            e = min(s + window, N)
+            ids_w = input_ids[:, s:e]
+            m_w = attention_mask[:, s:e]
+            if m_w.sum() == 0:
+                continue
+            fused = self._fuse(ids_w, m_w)               # (1, L, d)
+            parts.append(self._pool(fused, self.factor)[0])  # (ceil(L/f), d)
+        if not parts:
+            d = self.embed_tokens.weight.shape[1]
+            return torch.zeros(1, 0, d, device=input_ids.device,
+                               dtype=self.embed_tokens.weight.dtype)
+        return torch.cat(parts, dim=0).unsqueeze(0)      # (1, M, d)
 
     def forward_with_soft_list(self, soft_list, target_ids, target_mask=None):
         """Full-mode decode for B=1: soft_list is [ (M,d) ]. Feeds
@@ -184,6 +270,39 @@ def _avg_pool_tokens(x, factor):
         x = F.pad(x, (0, 0, 0, pad))
     x = x.view(B, -1, factor, d).mean(dim=2)
     return x
+
+
+def _attn_pool_tokens(x, factor, query, key_proj):
+    """(B, N, d) -> (B, ceil(N/factor), d) via learnable query-based attention
+    pooling over each non-overlapping group of `factor` tokens.
+
+    For each group, a shared learnable `query` scores the `factor` fused vectors
+    (keys = key_proj(x)) and the output is the softmax-weighted sum of the group.
+    With key_proj initialized to zero the scores are equal -> uniform softmax ->
+    identical to mean pooling; training then learns to concentrate weight on the
+    informative tokens instead of averaging every token equally.
+    """
+    B, N, d = x.shape
+    pad = (factor - N % factor) % factor
+    if pad:
+        x = F.pad(x, (0, 0, 0, pad))                       # (B, N+pad, d)
+    G = x.shape[1] // factor
+    groups = x.view(B, G, factor, d).float()               # (B, G, k, d)
+    if isinstance(key_proj, nn.ModuleList):
+        heads = []
+        for i, proj in enumerate(key_proj):
+            keys = proj(groups)                            # (B, G, k, d)
+            q = query[i].float()
+            scores = (keys * q).sum(-1) / (d ** 0.5)       # (B, G, k)
+            w = F.softmax(scores, dim=-1).unsqueeze(-1)    # (B, G, k, 1)
+            heads.append((w * groups).sum(dim=2))          # (B, G, d)
+        out = torch.stack(heads, dim=0).mean(dim=0)
+    else:
+        keys = key_proj(groups)                            # (B, G, k, d)
+        scores = (keys * query.float()).sum(-1) / (d ** 0.5)  # (B, G, k)
+        w = F.softmax(scores, dim=-1).unsqueeze(-1)        # (B, G, k, 1)
+        out = (w * groups).sum(dim=2)                      # (B, G, d)
+    return out.to(x.dtype)
 
 
 def _make_causal_mask(attention_mask, dtype):
@@ -221,4 +340,3 @@ def build_role_segments(tokenizer, turns, max_len=None):
             break
     input_ids = torch.tensor([ids], dtype=torch.long)
     return input_ids, [spans]
-
