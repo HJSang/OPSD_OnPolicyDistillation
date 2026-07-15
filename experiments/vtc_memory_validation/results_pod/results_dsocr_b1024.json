@@ -3,7 +3,7 @@
     "dataset": "locomo",
     "data_path": "data/locomo10.json",
     "conditions": "raw,summary,dsocr",
-    "text_model": "/shared/public/models/Qwen/Qwen2.5-7B-Instruct",
+    "text_model": "Qwen/Qwen2.5-7B-Instruct",
     "vl_model": "Qwen/Qwen2.5-VL-7B-Instruct",
     "limit": 20,
     "limit_per_sample": null,

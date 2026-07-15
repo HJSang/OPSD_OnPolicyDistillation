@@ -14,6 +14,7 @@ import torch
 from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parents[1]
+LONGBENCH_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 import run_validation as rv
@@ -130,8 +131,8 @@ def generate_soft(decoder, tok, comp, left, context, right, max_new_tokens, enc_
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datasets", default=",".join(QA_DATASETS))
-    ap.add_argument("--data_dir", default="longbench_official/data")
-    ap.add_argument("--official_dir", default="longbench_official/official_eval")
+    ap.add_argument("--data_dir", default=str(LONGBENCH_ROOT / "data"))
+    ap.add_argument("--official_dir", default=str(LONGBENCH_ROOT / "official_eval"))
     ap.add_argument("--condition", choices=["raw", "softtoken"], default="softtoken")
     ap.add_argument("--run_name", required=True)
     ap.add_argument("--decoder", default="qwen3-8b")

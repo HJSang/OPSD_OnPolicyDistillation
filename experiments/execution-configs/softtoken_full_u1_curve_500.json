@@ -1,6 +1,0 @@
-{
-    "inputs": {
-        "run_name": "softtoken_full_u1_curve_lme500",
-        "sweep_cmd": "for A in 8 16 32; do python -u softtoken/train.py --config configs/full_u1_a${A}.json --dataset longmemeval --data data/longmemeval_oracle.json --save softtoken/ckpt_full_u1_a${A}_500.pt; python -u softtoken/eval_softtoken.py --config configs/full_u1_a${A}.json --ckpt softtoken/ckpt_full_u1_a${A}_500.pt --dataset longmemeval --data data/longmemeval_oracle.json --limit 500 --shuffle --seed 0 --out results_lme500_softtoken_full_u1_a${A}.json; done"
-    }
-}

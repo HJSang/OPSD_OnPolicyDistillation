@@ -12,8 +12,7 @@ This prototype trains on short text chunks (single block, no session chunking)
 just to prove "compress -> inject -> reconstruct" works end to end and the loss
 goes down. Scale up later.
 
-Run on the pod (main env, transformers 5.x):
-  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+Example:
   python softtoken/train.py --decoder qwen2.5-7b --factor 8 --steps 200 \
       --data data/locomo10.json --dataset locomo --smoke
 """
@@ -192,7 +191,8 @@ def _first_conversation_turns(dataset_name, raw):
 
 
 def _save_ckpt(args, comp):
-    os.makedirs(os.path.dirname(args.save), exist_ok=True)
+    save_dir = os.path.dirname(os.path.abspath(args.save))
+    os.makedirs(save_dir, exist_ok=True)
     ckpt = {"adapter": comp.adapter.state_dict(),
             "gate": comp.gate.state_dict(),
             "args": vars(args)}
@@ -642,7 +642,7 @@ def main():
     ap.add_argument("--decoder", default="qwen2.5-7b")
     ap.add_argument("--dataset", default="locomo",
                     choices=["locomo", "longmemeval", "ultrachat", "synthlocomo", "msc_lme"])
-    ap.add_argument("--data", default="data/locomo10.json")
+    ap.add_argument("--data", default=os.path.join(rv.DATA_DIR, "locomo10.json"))
     ap.add_argument("--factor", type=int, default=8)
     ap.add_argument("--mode", default="simple", choices=["simple", "full"],
                     help="simple=uniform pooling; full=per-turn pooling with "
@@ -680,7 +680,8 @@ def main():
                     help="Manifest with weighted recon/QA streams. When set, "
                          "training samples streams by manifest weights instead "
                          "of using only --data/--recon_data.")
-    ap.add_argument("--recon_data", default="data/ultrachat_train.json",
+    ap.add_argument("--recon_data", default=os.path.join(
+        rv.DATA_DIR, "ultrachat_train.json"),
                     help="[qa_recon] dialogue corpus for the reconstruction term.")
     ap.add_argument("--qa_weight", type=float, default=1.0,
                     help="[qa_recon] weight on the QA term relative to recon.")
@@ -704,12 +705,9 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--fkl_weight", type=float, default=0.0,
                     help="weight on forward-KL to full-text next-token dist")
-    ap.add_argument("--config", default=None,
-                    help="JSON config (configs/simple.json or configs/full.json) "
-                         "whose keys set defaults for the args below; explicit "
-                         "CLI flags still override.")
     ap.add_argument("--smoke", action="store_true", help="tiny run to verify")
-    ap.add_argument("--save", default="softtoken/ckpt.pt")
+    ap.add_argument("--save", default=os.path.join(
+        rv.EXPERIMENT_DIR, "checkpoints", "softtoken.pt"))
     ap.add_argument("--init_ckpt", default=None,
                     help="warm-start the compressor from a previous checkpoint "
                          "before training (true two-stage training: e.g. stage 1 "
@@ -719,30 +717,15 @@ def main():
                          "comp.load_trained; the optimizer restarts fresh.")
     args = ap.parse_args()
 
-    # apply config file (skip _comment / name); CLI-provided flags win
-    if args.config:
-        with open(args.config) as f:
-            cfg = json.load(f)
-        provided = {a.split("=")[0].lstrip("-").replace("-", "_")
-                    for a in sys.argv[1:] if a.startswith("--")}
-        for k, v in cfg.items():
-            if k in ("_comment", "name"):
-                continue
-            if hasattr(args, k) and k not in provided:
-                setattr(args, k, v)
-        print(f"[st] loaded config {args.config} "
-              f"(name={cfg.get('name', '?')}, mode={args.mode})")
-
     if args.smoke:
         args.steps, args.n_chunks, args.max_len = 20, 8, 128
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
     path = rv.resolve_model(args.decoder)
-    if os.path.sep in path and not os.path.exists(path):
+    if os.path.isabs(path) and not os.path.exists(path):
         raise FileNotFoundError(
             f"Resolved decoder '{args.decoder}' to '{path}', but that path does "
-            "not exist. Run on the GPU pod with mounted /shared models, set "
-            "VTC_MODELS_ROOT/VTC_ELR_MODELS_ROOT, or pass a local model path.")
+            "not exist. Pass a valid local path or a Hugging Face model ID.")
     print(f"[st] loading decoder {path}")
     tok = AutoTokenizer.from_pretrained(path)
     decoder = AutoModelForCausalLM.from_pretrained(

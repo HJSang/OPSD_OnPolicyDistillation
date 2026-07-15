@@ -1,20 +1,0 @@
-[eval] loading decoder /shared/public/models/Qwen/Qwen2.5-7B-Instruct
-[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
-Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<01:15,  4.47it/s]Loading weights:   5%|▌         | 18/339 [00:00<00:04, 68.95it/s]Loading weights:  12%|█▏        | 42/339 [00:00<00:02, 126.90it/s]Loading weights:  19%|█▉        | 66/339 [00:00<00:01, 160.87it/s]Loading weights:  27%|██▋       | 90/339 [00:00<00:01, 182.73it/s]Loading weights:  34%|███▎      | 114/339 [00:00<00:01, 196.13it/s]Loading weights:  41%|████      | 138/339 [00:00<00:00, 205.50it/s]Loading weights:  48%|████▊     | 162/339 [00:00<00:00, 212.13it/s]Loading weights:  55%|█████▍    | 186/339 [00:01<00:00, 215.77it/s]Loading weights:  62%|██████▏   | 210/339 [00:01<00:00, 216.57it/s]Loading weights:  69%|██████▉   | 234/339 [00:01<00:00, 218.26it/s]Loading weights:  76%|███████▌  | 258/339 [00:01<00:00, 218.78it/s]Loading weights:  83%|████████▎ | 282/339 [00:01<00:00, 219.87it/s]Loading weights:  90%|█████████ | 306/339 [00:01<00:00, 221.07it/s]Loading weights:  97%|█████████▋| 330/339 [00:01<00:00, 221.65it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 196.39it/s]
-[eval] loaded ckpt softtoken/ckpt_simple_f8.pt (mode=simple)
-[eval] 20 QA items
-/home/jobuser/.local/lib/python3.10/site-packages/transformers/generation/utils.py:1115: UserWarning: Passing `repetition_penalty` with `inputs_embeds` and without `input_ids` to `generate` will apply the penalty only to newly generated tokens, not to the prompt.
-  warnings.warn(
-[transformers] The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
-  ... 5/20
-  ... 10/20
-  ... 15/20
-  ... 20/20
-
-============ SOFTTOKEN RESULTS ============
-multi_hop        0.250  (n=8)
-open_domain      0.000  (n=2)
-temporal         0.300  (n=10)
-OVERALL          0.250
-mean compression: 8.00x
-[eval] wrote results_softtoken_simple_f8.json

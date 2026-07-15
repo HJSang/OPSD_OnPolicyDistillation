@@ -1,22 +1,0 @@
-[data] locomo: 20 QA items (from 10 instances)
-[text] loading /shared/public/models/Qwen/Qwen2.5-7B-Instruct
-[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
-Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   1%|          | 4/339 [00:00<00:09, 35.52it/s]Loading weights:   8%|▊         | 28/339 [00:00<00:02, 134.23it/s]Loading weights:  15%|█▌        | 52/339 [00:00<00:01, 174.37it/s]Loading weights:  23%|██▎       | 77/339 [00:00<00:01, 198.27it/s]Loading weights:  30%|██▉       | 101/339 [00:00<00:01, 198.68it/s]Loading weights:  37%|███▋      | 126/339 [00:00<00:01, 211.57it/s]Loading weights:  44%|████▍     | 150/339 [00:00<00:00, 218.25it/s]Loading weights:  51%|█████     | 173/339 [00:00<00:00, 217.86it/s]Loading weights:  58%|█████▊    | 198/339 [00:00<00:00, 222.80it/s]Loading weights:  65%|██████▌   | 222/339 [00:01<00:00, 221.20it/s]Loading weights:  73%|███████▎  | 246/339 [00:01<00:00, 222.20it/s]Loading weights:  80%|███████▉  | 270/339 [00:01<00:00, 220.89it/s]Loading weights:  87%|████████▋ | 294/339 [00:01<00:00, 222.25it/s]Loading weights:  94%|█████████▍| 318/339 [00:01<00:00, 223.05it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 213.74it/s]
-[vl] loading /shared/public/elr-models/Qwen/Qwen2.5-VL-7B-Instruct/cc594898137f460bfe9f0759e9844b3ce807cfb5
-Loading weights:   0%|          | 0/729 [00:00<?, ?it/s]Loading weights:   1%|          | 4/729 [00:00<00:18, 39.80it/s]Loading weights:   4%|▍         | 28/729 [00:00<00:04, 150.63it/s]Loading weights:   7%|▋         | 51/729 [00:00<00:03, 180.16it/s]Loading weights:  10%|█         | 75/729 [00:00<00:03, 198.91it/s]Loading weights:  14%|█▎        | 100/729 [00:00<00:02, 212.92it/s]Loading weights:  17%|█▋        | 124/729 [00:00<00:02, 210.58it/s]Loading weights:  21%|██        | 150/729 [00:00<00:02, 216.59it/s]Loading weights:  24%|██▍       | 174/729 [00:00<00:02, 220.44it/s]Loading weights:  27%|██▋       | 198/729 [00:00<00:02, 225.03it/s]Loading weights:  30%|███       | 222/729 [00:01<00:02, 226.83it/s]Loading weights:  34%|███▎      | 246/729 [00:01<00:02, 230.23it/s]Loading weights:  37%|███▋      | 270/729 [00:01<00:01, 231.17it/s]Loading weights:  40%|████      | 294/729 [00:01<00:01, 233.44it/s]Loading weights:  44%|████▎     | 318/729 [00:01<00:01, 234.16it/s]Loading weights:  63%|██████▎   | 456/729 [00:01<00:00, 573.04it/s]Loading weights:  98%|█████████▊| 714/729 [00:01<00:00, 1166.11it/s]Loading weights: 100%|██████████| 729/729 [00:01<00:00, 432.14it/s] 
-  ... 5/20 done
-  ... 10/20 done
-  ... 15/20 done
-  ... 20/20 done
-
-================ RESULTS ================
-category               vtc
-multi_hop            0.750
-open_domain          0.000
-temporal             0.200
-OVERALL              0.400
-
----- mean compression ratio ----
-  vtc        0.97x
-
-[out] wrote per-item records to results_vtc_font9.json

@@ -95,16 +95,18 @@ Reference from the 16-item run (100-item parallel jobs in progress):
 
 ---
 
-## 4. Reproduce (mldev batch jobs)
+## 4. Reproduce
 ```bash
-cd mldev_efficiency
-# our method (zero-shot, no leakage), 500 items:
-mldev run vtc_sweep -e softtoken_full_u1_zeroshot -d prod-lva1-k8s-2 --crew-id 3330
-# uniform baseline:
-mldev run vtc_sweep -e softtoken_simple_zeroshot  -d prod-lva1-k8s-2 --crew-id 3330
-# results land in NFS /shared/public/sharing/vtc_memory/results/
+# Role-aware method, zero-shot on 500 LongMemEval items
+experiments/vtc_memory_validation/scripts/softtoken_role_aware.sh
+
+# Uniform baseline
+experiments/vtc_memory_validation/scripts/softtoken_simple.sh
 ```
-Plot: `python experiments/vtc_memory_validation/plot_pareto.py`.
+
+Outputs default to `experiments/vtc_memory_validation/results/`. Override that
+location with `VTC_RESULTS_DIR`. Plot with
+`python experiments/vtc_memory_validation/plot_pareto.py`.
 
 **Caveats:** single seed; DeepSeek-OCR shown at 16 items (100-item runs pending);
 prototype-scale encoder (2 layers, 1000 steps).

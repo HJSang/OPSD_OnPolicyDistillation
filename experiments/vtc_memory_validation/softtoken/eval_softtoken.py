@@ -12,10 +12,12 @@ For each QA item:
   3. judge correctness (same rules as run_validation), report per-category
      accuracy + achieved compression ratio.
 
-Run on the pod (main env):
-  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
-  python softtoken/eval_softtoken.py --config configs/simple.json \
-      --ckpt softtoken/ckpt_simple_f8.pt --limit 20
+Example:
+  python softtoken/eval_softtoken.py \
+      --ckpt checkpoints/softtoken_simple_f8.pt --limit 20
+
+The compressor architecture is restored from the training arguments embedded
+in the checkpoint. CLI options can override those values for ablations.
 """
 import argparse
 import json
@@ -183,14 +185,19 @@ def _iter_eval_items(dataset, raw, normalize_locomo_speakers=False):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", default="configs/simple.json")
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--factor", type=int, default=None,
-                    help="override the config's compression factor (simple mode)")
+                    help="override the checkpoint's compression factor")
     ap.add_argument("--decoder", default=None,
-                    help="override the config's decoder/reader (registry name or path)")
-    ap.add_argument("--dataset", default=None)
-    ap.add_argument("--data", default=None)
+                    help="override the checkpoint's decoder/reader")
+    ap.add_argument("--mode", choices=["simple", "full"], default=None)
+    ap.add_argument("--user_factor", type=int, default=None)
+    ap.add_argument("--assistant_factor", type=int, default=None)
+    ap.add_argument("--enc_layers", type=int, default=None)
+    ap.add_argument("--pool", choices=["mean", "attn", "attn4"], default=None)
+    ap.add_argument("--dataset", default="longmemeval")
+    ap.add_argument("--data", default=os.path.join(
+        rv.DATA_DIR, "longmemeval_oracle.json"))
     ap.add_argument("--limit", type=int, default=20)
     ap.add_argument("--shuffle", action="store_true",
                     help="shuffle before --limit (match run_validation for a "
@@ -213,14 +220,18 @@ def main():
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    with open(args.config) as f:
-        cfg = json.load(f)
-    dataset = args.dataset or cfg.get("dataset", "locomo")
-    data = args.data or cfg.get("data", "data/locomo10.json")
-    mode = cfg.get("mode", "simple")
+    ck = torch.load(args.ckpt, map_location="cpu")
+    ck_args = ck.get("args", {}) if isinstance(ck, dict) else {}
+    mode = args.mode or ck_args.get("mode", "simple")
+    factor = args.factor or ck_args.get("factor", 8)
+    enc_layers = args.enc_layers or ck_args.get("enc_layers", 2)
+    user_factor = args.user_factor or ck_args.get("user_factor", 4)
+    assistant_factor = args.assistant_factor or ck_args.get("assistant_factor", 16)
+    dataset = args.dataset
+    data = args.data
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    path = rv.resolve_model(args.decoder or cfg.get("decoder", "qwen2.5-7b"))
+    path = rv.resolve_model(args.decoder or ck_args.get("decoder", "qwen2.5-7b"))
     print(f"[eval] loading decoder {path}")
     tok = AutoTokenizer.from_pretrained(path)
     decoder = AutoModelForCausalLM.from_pretrained(
@@ -229,28 +240,26 @@ def main():
     # Match the encoder config to how the checkpoint was trained: if the ckpt
     # has no saved encoder layers it was trained with train_encoder=False (the
     # long-context recipe), so the borrowed layers must stay in bf16 to match.
-    import torch as _torch
-    _ck = _torch.load(args.ckpt, map_location="cpu")
-    _ck_args = _ck.get("args", {}) if isinstance(_ck, dict) else {}
-    train_encoder = "enc_layers" in _ck if isinstance(_ck, dict) else True
-    if isinstance(_ck_args, dict) and "train_encoder" in _ck_args:
-        train_encoder = bool(_ck_args["train_encoder"])
+    train_encoder = "enc_layers" in ck if isinstance(ck, dict) else True
+    if isinstance(ck_args, dict) and "train_encoder" in ck_args:
+        train_encoder = bool(ck_args["train_encoder"])
     # Reconstruct the token pooling used at training. If the ckpt was trained
     # with attention pooling it carries pool_key/pool_query; the compressor must
     # be built with pool_mode="attn" or load_trained silently drops them and
     # eval falls back to mean pooling (wrong, degraded results).
-    pool_mode = _ck_args.get("pool") if isinstance(_ck_args, dict) else None
+    pool_mode = args.pool or (ck_args.get("pool") if isinstance(ck_args, dict)
+                              else None)
     if not pool_mode:
-        pool_mode = "attn" if (isinstance(_ck, dict) and "pool_key" in _ck) \
-            else cfg.get("pool", "mean")
-    del _ck
+        pool_mode = "attn4" if (isinstance(ck, dict) and "pool_keys" in ck) \
+            else "attn" if (isinstance(ck, dict) and "pool_key" in ck) \
+            else "mean"
+    del ck
 
     comp = SoftTokenCompressor(
-        decoder, factor=args.factor or cfg.get("factor", 8),
-        enc_layers=cfg.get("enc_layers", 2), train_encoder=train_encoder,
+        decoder, factor=factor,
+        enc_layers=enc_layers, train_encoder=train_encoder,
         mode=mode,
-        role_factors={"user": cfg.get("user_factor", 4),
-                      "assistant": cfg.get("assistant_factor", 16)},
+        role_factors={"user": user_factor, "assistant": assistant_factor},
         pool_mode=pool_mode).cuda()
     comp.load_trained(args.ckpt)
     comp.eval()
@@ -318,9 +327,19 @@ def main():
     print(f"{'OVERALL':<16} {sum(allb)/len(allb):.3f}")
     print(f"mean compression: {sum(ratios)/len(ratios):.2f}x")
 
-    out = args.out or f"results_softtoken_{cfg.get('name','x')}.json"
+    ckpt_name = os.path.splitext(os.path.basename(args.ckpt))[0]
+    out = args.out or os.path.join(
+        os.environ.get("VTC_RESULTS_DIR",
+                       os.path.join(rv.EXPERIMENT_DIR, "results")),
+        f"results_{ckpt_name}.json")
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w") as f:
-        json.dump({"config": cfg, "ckpt": args.ckpt, "records": records}, f, indent=2)
+        json.dump({
+            "checkpoint_args": ck_args,
+            "eval_args": vars(args),
+            "ckpt": args.ckpt,
+            "records": records,
+        }, f, indent=2)
     print(f"[eval] wrote {out}")
 
 

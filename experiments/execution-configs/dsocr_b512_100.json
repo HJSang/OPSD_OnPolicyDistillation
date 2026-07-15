@@ -1,6 +1,0 @@
-{
-    "inputs": {
-        "run_name": "dsocr_b512_lme100",
-        "sweep_cmd": "/shared/public/sharing/vtc_memory/dsocr_env/bin/python -u run_dsocr_reconstruct.py --dataset longmemeval --data_path data/longmemeval_oracle.json --limit 100 --shuffle --seed 0 --mode simple --base_size 512 --render_size 1024 --font_size 16 --model_path /shared/public/sharing/vtc_memory/DeepSeek-OCR --out dsocr_cache_lme100_b512.json; cp dsocr_cache_lme100_b512.json /shared/public/sharing/vtc_memory/results/"
-    }
-}

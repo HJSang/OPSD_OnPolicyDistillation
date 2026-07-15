@@ -1,0 +1,9 @@
+transformers==4.46.3
+torch
+accelerate
+pillow
+einops
+addict
+easydict
+timm
+sentencepiece

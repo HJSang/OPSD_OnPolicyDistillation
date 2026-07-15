@@ -17,11 +17,10 @@ This script runs NO training. It just compares, on LoCoMo memory QA:
 and breaks accuracy down by question category, alongside the achieved
 compression ratio for each condition.
 
-Everything runs on a single GPU pod (see README.md for how to launch one on the
-LinkedIn cluster via `mldev run`). Uses HuggingFace transformers (stable, well
+Everything runs on a single GPU. Uses HuggingFace transformers (stable, well
 documented API) rather than vLLM so the multimodal path is predictable.
 
-First-run checklist (verify on the pod, not locally -- this Mac has no GPU):
+First-run checklist:
     1. `pip install -r requirements.txt`
     2. Confirm the LoCoMo data URL below resolves, or pass --data_path to a local copy.
     3. Start with `--limit 5 --conditions raw` to smoke-test the text path,
@@ -54,47 +53,52 @@ CATEGORY_NAMES = {
 }
 
 # --------------------------------------------------------------------------- #
-# Model registry: short name -> path. Extend via models.json (see resolve_model)
-# so you can pass e.g. `--text_model qwen3-4b` instead of a long NFS path.
+# Portable model registry. Environment variables can point aliases at local
+# mirrors; otherwise transformers downloads the public Hugging Face repository.
 # --------------------------------------------------------------------------- #
 MODEL_REGISTRY = {
     # ---- text readers ----
-    "qwen2.5-7b": "/shared/public/models/Qwen/Qwen2.5-7B-Instruct",
-    "qwen3-4b": "/shared/public/elr-models/Qwen/Qwen3-4B-Instruct-2507/"
-                "eb25fbe4f35f7147763bc24445679d1c00588d89",
-    "qwen3.5-4b": "/shared/public/elr-models/Qwen/Qwen3.5-4B/"
-                  "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
-    "qwen3-8b": "/shared/public/models/liha_candidate_eval/v1_0_2_QWEN3_8B",
+    "qwen2.5-7b": os.environ.get(
+        "VTC_MODEL_QWEN2_5_7B", "Qwen/Qwen2.5-7B-Instruct"),
+    "qwen3-4b": os.environ.get(
+        "VTC_MODEL_QWEN3_4B", "Qwen/Qwen3-4B-Instruct-2507"),
+    "qwen3.5-4b": os.environ.get(
+        "VTC_MODEL_QWEN3_5_4B", "Qwen/Qwen3.5-4B"),
+    "qwen3-8b": os.environ.get(
+        "VTC_MODEL_QWEN3_8B", "Qwen/Qwen3-8B"),
     # ---- vision-language (VTC) ----
-    "qwen2.5-vl-7b": "/shared/public/elr-models/Qwen/Qwen2.5-VL-7B-Instruct/"
-                     "cc594898137f460bfe9f0759e9844b3ce807cfb5",
+    "qwen2.5-vl-7b": os.environ.get(
+        "VTC_MODEL_QWEN2_5_VL_7B", "Qwen/Qwen2.5-VL-7B-Instruct"),
     # ---- visual compressor (used by run_dsocr_reconstruct.py) ----
-    "deepseek-ocr": "~/models/DeepSeek-OCR",
+    "deepseek-ocr": os.environ.get(
+        "VTC_MODEL_DEEPSEEK_OCR", "deepseek-ai/DeepSeek-OCR"),
 }
 
+EXPERIMENT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.environ.get("VTC_DATA_DIR", os.path.join(EXPERIMENT_DIR, "data"))
+RESULTS_DIR = os.environ.get(
+    "VTC_RESULTS_DIR", os.path.join(EXPERIMENT_DIR, "results"))
 
-def resolve_model(name_or_path, model_config=None):
-    """Resolve a registry short name (or JSON-config entry) to a filesystem path.
 
-    Precedence: models.json (if given / present) > built-in MODEL_REGISTRY >
-    treat the string as a literal path.
-    """
-    registry = dict(MODEL_REGISTRY)
-    cfg_path = model_config or os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "models.json")
-    if os.path.exists(cfg_path):
-        try:
-            with open(cfg_path) as f:
-                registry.update(json.load(f))
-        except Exception as e:
-            print(f"[warn] could not read model config {cfg_path}: {e}")
-    return os.path.expanduser(registry.get(name_or_path, name_or_path))
+def resolve_model(name_or_path):
+    """Resolve a short name to a public model ID or environment override."""
+    return os.path.expanduser(MODEL_REGISTRY.get(name_or_path, name_or_path))
+
+
+def resolve_data_path(path):
+    """Resolve relative data paths independently of the caller's cwd."""
+    if re.match(r"https?://", path) or os.path.isabs(path):
+        return path
+    if os.path.exists(path):
+        return path
+    return os.path.join(EXPERIMENT_DIR, path)
 
 
 # --------------------------------------------------------------------------- #
 # Data loading / parsing
 # --------------------------------------------------------------------------- #
 def load_json(data_path_or_url):
+    data_path_or_url = resolve_data_path(data_path_or_url)
     if os.path.exists(data_path_or_url):
         with open(data_path_or_url) as f:
             return json.load(f)
@@ -431,17 +435,14 @@ def main():
     ap.add_argument("--data_path", default=None,
                     help="Local path or URL to the dataset json. "
                          "Defaults: LoCoMo -> remote URL; "
-                         "LongMemEval -> data/longmemeval_oracle.json")
+                         "LongMemEval -> $VTC_DATA_DIR/longmemeval_oracle.json")
     ap.add_argument("--conditions", default="raw,summary,vtc",
-                    help="Comma list subset of raw,summary,vtc")
+                    help="Comma list subset of raw,summary,vtc,dsocr")
     ap.add_argument("--text_model", default="qwen2.5-7b",
-                    help="Registry name (see MODEL_REGISTRY / models.json) or a "
+                    help="Registry name (see MODEL_REGISTRY) or a "
                          "full path. e.g. qwen2.5-7b, qwen3-4b, qwen3.5-4b, qwen3-8b")
     ap.add_argument("--vl_model", default="qwen2.5-vl-7b",
                     help="Registry name or full path for the VTC model")
-    ap.add_argument("--model_config", default=None,
-                    help="Optional JSON mapping of model short-names to paths "
-                         "(defaults to ./models.json if present)")
     ap.add_argument("--limit", type=int, default=30,
                     help="Max total QA items to evaluate")
     ap.add_argument("--limit_per_sample", type=int, default=None)
@@ -460,7 +461,7 @@ def main():
     ap.add_argument("--dsocr_cache", default="dsocr_cache.json",
                     help="Path to the DeepSeek-OCR reconstruction cache produced "
                          "by run_dsocr_reconstruct.py (used by the 'dsocr' condition)")
-    ap.add_argument("--out", default="results.json")
+    ap.add_argument("--out", default=os.path.join(RESULTS_DIR, "results.json"))
     args = ap.parse_args()
 
     conditions = [c.strip() for c in args.conditions.split(",") if c.strip()]
@@ -469,7 +470,7 @@ def main():
     data_path = args.data_path
     if data_path is None:
         data_path = (DEFAULT_LOCOMO_URL if args.dataset == "locomo"
-                     else "data/longmemeval_oracle.json")
+                     else os.path.join(DATA_DIR, "longmemeval_oracle.json"))
     dataset = load_json(data_path)
 
     items = list(iter_items(args.dataset, dataset, args.limit_per_sample))
@@ -481,8 +482,8 @@ def main():
     print(f"[data] {args.dataset}: {len(items)} QA items "
           f"(from {len(dataset)} instances)")
 
-    text_model = TextModel(resolve_model(args.text_model, args.model_config))
-    vl_model = (VLModel(resolve_model(args.vl_model, args.model_config),
+    text_model = TextModel(resolve_model(args.text_model))
+    vl_model = (VLModel(resolve_model(args.vl_model),
                         max_pixels=args.vl_max_pixels)
                 if "vtc" in conditions else None)
 
@@ -593,6 +594,7 @@ def main():
         r = ratio_stats[c]
         print(f"  {c:<10} {sum(r)/len(r):.2f}x" if r else f"  {c}: n/a")
 
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w") as f:
         json.dump({"args": vars(args), "records": records}, f, indent=2)
     print(f"\n[out] wrote per-item records to {args.out}")

@@ -18,6 +18,7 @@ import torch
 from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parents[1]
+LONGBENCH_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 import run_validation as rv
@@ -228,8 +229,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stage", choices=["cache", "pred", "both"], default="both")
     ap.add_argument("--datasets", default=",".join(QA_DATASETS))
-    ap.add_argument("--data_dir", default="longbench_official/data")
-    ap.add_argument("--official_dir", default="longbench_official/official_eval")
+    ap.add_argument("--data_dir", default=str(LONGBENCH_ROOT / "data"))
+    ap.add_argument("--official_dir", default=str(LONGBENCH_ROOT / "official_eval"))
     ap.add_argument("--run_name", required=True)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--cache", required=True)
@@ -238,8 +239,8 @@ def main():
     ap.add_argument("--decoder", default="qwen3-8b")
     ap.add_argument("--dsocr_model_path",
                     default=os.environ.get(
-                        "VTC_DEEPSEEK_OCR",
-                        "/shared/public/sharing/vtc_memory/DeepSeek-OCR"))
+                        "VTC_MODEL_DEEPSEEK_OCR",
+                        rv.resolve_model("deepseek-ocr")))
     ap.add_argument("--font_size", type=int, default=18)
     ap.add_argument("--base_size", type=int, default=640)
     ap.add_argument("--image_size", type=int, default=None)

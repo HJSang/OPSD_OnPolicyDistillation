@@ -18,12 +18,10 @@ Output: a cache JSON keyed by conversation id ("<dataset>:<sample_index>"),
 consumed by run_validation.py's `dsocr` condition (which answers with Qwen over
 the reconstructed text -> apples-to-apples with the `summary` condition).
 
-Usage (on the pod, in the dsocr venv):
-    source ~/dsocr_env/bin/activate
-    export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+Usage:
     python run_dsocr_reconstruct.py --dataset locomo --data_path data/locomo10.json \
         --limit 20 --base_size 1024 --font_size 16 \
-        --model_path ~/models/DeepSeek-OCR --out dsocr_cache_locomo_b1024.json
+        --model_path deepseek-ocr --out results/dsocr_cache_locomo_b1024.json
 """
 import argparse
 import json
