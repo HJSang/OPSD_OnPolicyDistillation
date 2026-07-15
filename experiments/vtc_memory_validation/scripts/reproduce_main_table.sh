@@ -22,11 +22,17 @@ export VTC_RUNS_DIR="${runs_dir}"
 export VTC_MODEL_QWEN2_5_7B="${qwen_path}"
 export VTC_MODEL_DEEPSEEK_OCR="${dsocr_path}"
 
+git_commit="${VTC_GIT_COMMIT:-unknown}"
+git_dirty="unavailable (source is not a Git checkout)"
+if git -C "${experiment_dir}" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  git_commit="$(git -C "${experiment_dir}" rev-parse HEAD)"
+  git_dirty="$(git -C "${experiment_dir}" status --short)"
+fi
+
 {
   printf 'started_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-  printf 'git_commit=%s\n' "$(git -C "${experiment_dir}" rev-parse HEAD)"
-  printf 'git_dirty=\n'
-  git -C "${experiment_dir}" status --short
+  printf 'git_commit=%s\n' "${git_commit}"
+  printf 'git_dirty=%s\n' "${git_dirty}"
   printf 'qwen_revision=%s\n' "${qwen_revision}"
   printf 'deepseek_ocr_revision=%s\n' "${dsocr_revision}"
   printf 'llama_judge_revision=%s\n' "${llama_revision}"
@@ -79,7 +85,7 @@ launch role-a32 5 "ASSISTANT_FACTORS=32 LIMIT=500 bash scripts/softtoken_role_aw
 launch raw-summary 6 \
   "LIMIT=500 OUT=/runs/results/results_longmemeval_raw_summary_500.json bash scripts/raw_summary.sh"
 launch deepseek-ocr 7 \
-  "LIMIT=500 BASE_SIZES='1024 640 512' bash scripts/deepseek_ocr.sh"
+  "LIMIT=500 BASE_SIZES='1024 640 512' bash scripts/deepseek_ocr.sh --max_num_seqs 64"
 
 failed=0
 for i in "${!pids[@]}"; do

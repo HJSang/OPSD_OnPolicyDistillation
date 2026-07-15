@@ -63,6 +63,8 @@ HF_TOKEN=... experiments/vtc_memory_validation/scripts/reproduce_main_table.sh
 
 Artifacts are written under
 `experiments/vtc_memory_validation/.docker-runs/main-table` by default.
+When running from an exported source archive rather than a Git checkout, set
+`VTC_GIT_COMMIT` to preserve the source revision in the run manifest.
 
 The runner mounts the repository at `/workspace`, Hugging Face cache at
 `/cache/huggingface`, and generated data, checkpoints, and results at
@@ -148,6 +150,10 @@ pooling, forward-KL weight 1.0, learning rate `1e-4`, and seed 0. Training
 enables deterministic PyTorch/CUDA algorithms by default; pass
 `--non_deterministic` directly to `softtoken/train.py` only when throughput is
 more important than producing identical checkpoints.
+
+The eight-GPU main-table launcher sets DeepSeek-OCR `--max_num_seqs 64`, which
+was validated on a 192 GB B200. Lower this value when reproducing the OCR rows
+on GPUs with less memory.
 
 Common path variables:
 
