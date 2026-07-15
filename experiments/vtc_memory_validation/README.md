@@ -33,7 +33,7 @@ the original jobs:
 
 | Component | Version |
 |---|---|
-| Base image | `slime@sha256:7a903708...` |
+| Base image | `slimerl/slime@sha256:9b548a94...` |
 | Python | 3.12.3 |
 | CUDA toolkit/runtime | 12.9.1 |
 | cuDNN (PyTorch runtime) | 9.16.0 |

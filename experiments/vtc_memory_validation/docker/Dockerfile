@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=533267258830.dkr.ecr.ap-south-1.amazonaws.com/slime@sha256:7a9037083c5366bad593af48a1fe106b208e0c73cafb2f2cc2c4b881e7a19f27
+ARG BASE_IMAGE=slimerl/slime@sha256:9b548a94930f5b1b03faaf481d0ed5c31d12302b7ca37cf2ca933c9c60d0975e
 FROM ${BASE_IMAGE}
 
 USER root
@@ -21,7 +21,7 @@ RUN python3 -m pip install --no-cache-dir --no-deps \
 # DeepSeek-OCR requires an older Transformers release than the main jobs.
 # Reuse the base image's CUDA-enabled PyTorch while isolating its Python deps.
 RUN python3 -m venv --system-site-packages /opt/vtc-deepseek-ocr && \
-    /opt/vtc-deepseek-ocr/bin/python -m pip install --no-cache-dir \
+    /opt/vtc-deepseek-ocr/bin/python -m pip install --no-cache-dir --no-deps \
         -r /tmp/requirements-deepseek-ocr.txt
 
 ENV VTC_DSOCR_NATIVE_PYTHON=/opt/vtc-deepseek-ocr/bin/python \
