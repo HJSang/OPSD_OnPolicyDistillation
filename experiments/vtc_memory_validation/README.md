@@ -83,9 +83,11 @@ experiments/vtc_memory_validation/docker/run.sh \
   bash scripts/raw_summary.sh
 ```
 
-DeepSeek-OCR uses `/opt/vtc-deepseek-ocr/bin/python`, an isolated environment
-with Transformers 4.46.3 and the base image's CUDA-enabled PyTorch. Its tested
-model revision is `9f30c71f441d010e5429c532364a86705536c53a`:
+The default batched DeepSeek-OCR path uses vLLM in the main environment. Its
+slower native fallback uses `/opt/vtc-deepseek-ocr/bin/python`, an isolated
+environment with Transformers 4.46.3 and the base image's CUDA-enabled
+PyTorch. The tested model revision is
+`9f30c71f441d010e5429c532364a86705536c53a`:
 
 ```bash
 experiments/vtc_memory_validation/docker/run.sh \

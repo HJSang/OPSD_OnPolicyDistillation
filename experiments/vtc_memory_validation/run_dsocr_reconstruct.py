@@ -2,8 +2,10 @@
 """
 Stage 1 of the DeepSeek-OCR visual-compression condition.
 
-Runs in the ISOLATED transformers==4.46.3 venv (DeepSeek-OCR needs the old
-Llama attention classes; it conflicts with the main env's transformers 5.x).
+The batched vLLM engine runs in the main pinned environment. The native
+Transformers fallback runs in an isolated transformers==4.46.3 environment
+because DeepSeek-OCR's remote model code needs the older Llama attention
+classes.
 
 For each conversation it:
   1. renders the conversation text to square page images,
