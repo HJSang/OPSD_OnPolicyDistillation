@@ -1,0 +1,20 @@
+[eval] loading decoder /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<01:35,  3.53it/s]Loading weights:   5%|▍         | 16/339 [00:00<00:06, 52.57it/s]Loading weights:  12%|█▏        | 39/339 [00:00<00:02, 105.75it/s]Loading weights:  17%|█▋        | 58/339 [00:00<00:02, 131.06it/s]Loading weights:  23%|██▎       | 77/339 [00:00<00:01, 148.22it/s]Loading weights:  29%|██▉       | 100/339 [00:00<00:01, 160.83it/s]Loading weights:  37%|███▋      | 124/339 [00:00<00:01, 178.75it/s]Loading weights:  42%|████▏     | 143/339 [00:01<00:01, 181.03it/s]Loading weights:  48%|████▊     | 162/339 [00:01<00:01, 170.76it/s]Loading weights:  55%|█████▍    | 185/339 [00:01<00:00, 181.80it/s]Loading weights:  61%|██████▏   | 208/339 [00:01<00:00, 191.05it/s]Loading weights:  67%|██████▋   | 228/339 [00:01<00:00, 189.43it/s]Loading weights:  73%|███████▎  | 248/339 [00:01<00:00, 179.81it/s]Loading weights:  79%|███████▉  | 269/339 [00:01<00:00, 183.72it/s]Loading weights:  86%|████████▌ | 292/339 [00:01<00:00, 192.70it/s]Loading weights:  92%|█████████▏| 312/339 [00:01<00:00, 189.96it/s]Loading weights:  98%|█████████▊| 332/339 [00:02<00:00, 182.73it/s]Loading weights: 100%|██████████| 339/339 [00:02<00:00, 164.14it/s]
+[eval] loaded ckpt softtoken/ckpt_full_u4_a16.pt (mode=full)
+[eval] 20 QA items
+/home/jobuser/.local/lib/python3.10/site-packages/transformers/generation/utils.py:1115: UserWarning: Passing `repetition_penalty` with `inputs_embeds` and without `input_ids` to `generate` will apply the penalty only to newly generated tokens, not to the prompt.
+  warnings.warn(
+[transformers] The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+  ... 5/20
+  ... 10/20
+  ... 15/20
+  ... 20/20
+
+============ SOFTTOKEN RESULTS ============
+multi_hop        0.500  (n=8)
+open_domain      0.000  (n=2)
+temporal         0.200  (n=10)
+OVERALL          0.300
+mean compression: 6.89x
+[eval] wrote results_softtoken_full_u4_a16.json

@@ -1,0 +1,49 @@
+### EVAL SIMPLE (lme) ###
+[eval] loading decoder /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<00:43,  7.75it/s]Loading weights:   1%|          | 2/339 [00:00<00:48,  7.02it/s]Loading weights:   5%|▌         | 18/339 [00:00<00:05, 59.95it/s]Loading weights:  12%|█▏        | 41/339 [00:00<00:02, 113.47it/s]Loading weights:  19%|█▉        | 64/339 [00:00<00:01, 147.62it/s]Loading weights:  24%|██▎       | 80/339 [00:00<00:01, 151.16it/s]Loading weights:  29%|██▉       | 100/339 [00:00<00:01, 164.10it/s]Loading weights:  37%|███▋      | 124/339 [00:00<00:01, 183.70it/s]Loading weights:  42%|████▏     | 143/339 [00:01<00:01, 181.57it/s]Loading weights:  48%|████▊     | 162/339 [00:01<00:01, 175.55it/s]Loading weights:  55%|█████▍    | 185/339 [00:01<00:00, 186.10it/s]Loading weights:  61%|██████    | 207/339 [00:01<00:00, 169.97it/s]Loading weights:  69%|██████▊   | 233/339 [00:01<00:00, 190.69it/s]Loading weights:  76%|███████▌  | 256/339 [00:01<00:00, 194.71it/s]Loading weights:  81%|████████▏ | 276/339 [00:01<00:00, 189.70it/s]Loading weights:  87%|████████▋ | 296/339 [00:01<00:00, 182.11it/s]Loading weights:  94%|█████████▎| 317/339 [00:01<00:00, 185.39it/s]Loading weights: 100%|██████████| 339/339 [00:02<00:00, 164.46it/s]
+[eval] loaded ckpt softtoken/ckpt_simple_lme.pt (mode=simple)
+[eval] 16 QA items
+/home/jobuser/.local/lib/python3.10/site-packages/transformers/generation/utils.py:1115: UserWarning: Passing `repetition_penalty` with `inputs_embeds` and without `input_ids` to `generate` will apply the penalty only to newly generated tokens, not to the prompt.
+  warnings.warn(
+[transformers] The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+  ... 5/16
+  ... 10/16
+  ... 15/16
+
+============ SOFTTOKEN RESULTS ============
+abstention       0.000  (n=2)
+knowledge-update 0.500  (n=2)
+multi-session    0.000  (n=4)
+single-session-assistant 0.000  (n=1)
+single-session-preference 0.000  (n=1)
+single-session-user 0.500  (n=2)
+temporal-reasoning 0.500  (n=4)
+OVERALL          0.250
+mean compression: 7.99x
+[eval] wrote results_lme_softtoken_simple.json
+### EVAL FULL (lme) ###
+[eval] loading decoder /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<01:14,  4.56it/s]Loading weights:   6%|▌         | 19/339 [00:00<00:04, 73.64it/s]Loading weights:  12%|█▏        | 42/339 [00:00<00:02, 127.26it/s]Loading weights:  19%|█▉        | 66/339 [00:00<00:01, 161.35it/s]Loading weights:  27%|██▋       | 90/339 [00:00<00:01, 182.82it/s]Loading weights:  34%|███▎      | 114/339 [00:00<00:01, 197.10it/s]Loading weights:  41%|████      | 138/339 [00:00<00:00, 206.47it/s]Loading weights:  48%|████▊     | 162/339 [00:00<00:00, 213.24it/s]Loading weights:  55%|█████▍    | 186/339 [00:01<00:00, 216.08it/s]Loading weights:  62%|██████▏   | 210/339 [00:01<00:00, 216.44it/s]Loading weights:  69%|██████▊   | 233/339 [00:01<00:00, 215.00it/s]Loading weights:  76%|███████▌  | 258/339 [00:01<00:00, 219.34it/s]Loading weights:  83%|████████▎ | 282/339 [00:01<00:00, 220.58it/s]Loading weights:  90%|████████▉ | 305/339 [00:01<00:00, 219.18it/s]Loading weights:  97%|█████████▋| 330/339 [00:01<00:00, 223.43it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 197.23it/s]
+[eval] loaded ckpt softtoken/ckpt_full_lme.pt (mode=full)
+[eval] 16 QA items
+/home/jobuser/.local/lib/python3.10/site-packages/transformers/generation/utils.py:1115: UserWarning: Passing `repetition_penalty` with `inputs_embeds` and without `input_ids` to `generate` will apply the penalty only to newly generated tokens, not to the prompt.
+  warnings.warn(
+[transformers] The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
+  ... 5/16
+  ... 10/16
+  ... 15/16
+
+============ SOFTTOKEN RESULTS ============
+abstention       0.500  (n=2)
+knowledge-update 0.000  (n=2)
+multi-session    0.500  (n=4)
+single-session-assistant 0.000  (n=1)
+single-session-preference 0.000  (n=1)
+single-session-user 0.000  (n=2)
+temporal-reasoning 0.750  (n=4)
+OVERALL          0.375
+mean compression: 12.06x
+[eval] wrote results_lme_softtoken_full.json
+EVAL ST LME DONE

@@ -1,0 +1,9 @@
+########## stage2 base_size=640 ##########
+category             dsocr
+OVERALL              0.400
+  dsocr      8.86x
+########## stage2 base_size=512 ##########
+category             dsocr
+OVERALL              0.100
+  dsocr      13.84x
+STAGE2 SWEEP DONE
