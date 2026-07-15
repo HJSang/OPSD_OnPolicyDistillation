@@ -26,6 +26,64 @@ pip install -r requirements.txt
 Models are downloaded by `transformers` from Hugging Face unless an alias is
 overridden with an environment variable.
 
+### Docker GPU environment
+
+The reproducible GPU image is based on the SLIME/VERL training stack used by
+the original jobs:
+
+| Component | Version |
+|---|---|
+| Base image | `slime@sha256:7a903708...` |
+| Python | 3.12.3 |
+| CUDA toolkit/runtime | 12.9.1 |
+| cuDNN (PyTorch runtime) | 9.16.0 |
+| NCCL (PyTorch runtime) | 2.27.5 |
+| PyTorch | 2.9.1+cu129 |
+| SGLang | 0.5.9 |
+| Ray | 2.54.0 |
+| Transformers | 4.57.1 |
+
+This stack was validated on NVIDIA B200 GPUs with driver `580.167.08`.
+
+Build and verify it from the repository root:
+
+```bash
+experiments/vtc_memory_validation/docker/build.sh
+experiments/vtc_memory_validation/docker/run.sh \
+  python docker/verify_environment.py --require-gpu
+```
+
+The runner mounts the repository at `/workspace`, Hugging Face cache at
+`/cache/huggingface`, and generated data, checkpoints, and results at
+`experiments/vtc_memory_validation/.docker-runs`.
+
+The default Qwen model was validated at revision
+`a09a35458c702b33eeacc393d103063234e8bc28`. Cache that exact revision with:
+
+```bash
+experiments/vtc_memory_validation/docker/run.sh \
+  hf download Qwen/Qwen2.5-7B-Instruct \
+    --revision a09a35458c702b33eeacc393d103063234e8bc28
+
+export VTC_MODEL_QWEN2_5_7B=/cache/huggingface/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28
+experiments/vtc_memory_validation/docker/run.sh \
+  bash scripts/raw_summary.sh
+```
+
+DeepSeek-OCR uses `/opt/vtc-deepseek-ocr/bin/python`, an isolated environment
+with Transformers 4.46.3 and the base image's CUDA-enabled PyTorch. Its tested
+model revision is `9f30c71f441d010e5429c532364a86705536c53a`:
+
+```bash
+experiments/vtc_memory_validation/docker/run.sh \
+  hf download deepseek-ai/DeepSeek-OCR \
+    --revision 9f30c71f441d010e5429c532364a86705536c53a
+
+export VTC_MODEL_DEEPSEEK_OCR=/cache/huggingface/models--deepseek-ai--DeepSeek-OCR/snapshots/9f30c71f441d010e5429c532364a86705536c53a
+experiments/vtc_memory_validation/docker/run.sh \
+  bash scripts/deepseek_ocr.sh
+```
+
 ## Data
 
 The scripts call `prepare_data.py` when required files are missing. To prepare
