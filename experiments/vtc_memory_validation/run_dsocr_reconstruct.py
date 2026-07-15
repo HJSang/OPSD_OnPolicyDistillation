@@ -67,6 +67,8 @@ def main():
                     help="DeepSeek-OCR OCR resolution; tokens/page=(base_size/64)^2. "
                          "Lower -> fewer vision tokens -> more compression (and "
                          "blurrier text) for the SAME rendered page.")
+    ap.add_argument("--image_size", type=int, default=None,
+                    help="DeepSeek-OCR input resize; defaults to base_size")
     ap.add_argument("--render_size", type=int, default=1024,
                     help="Pixel size of each square rendered page (kept fixed "
                          "across the base_size sweep so higher compression = "
@@ -80,12 +82,17 @@ def main():
     ap.add_argument("--max_num_seqs", type=int, default=16)
     ap.add_argument("--max_num_batched_tokens", type=int, default=16384)
     ap.add_argument("--enforce_eager", action="store_true",
-                    help="disable CUDA graphs (automatically enabled at 1024)")
+                    help="disable CUDA graphs")
+    ap.add_argument("--crop_mode", action=argparse.BooleanOptionalAction,
+                    default=False,
+                    help="enable DeepSeek-OCR dynamic image cropping")
     ap.add_argument("--mode", default="simple", choices=["simple", "full"],
                     help="simple=render whole conversation; full=keep USER turns "
                          "as verbatim text and only OCR-compress ASSISTANT turns "
                          "(DeepSeek-OCR analogue of soft-token full_u1).")
     args = ap.parse_args()
+    if args.image_size is None:
+        args.image_size = args.base_size
 
     tokens_per_page = (args.base_size // 64) ** 2
 
@@ -134,8 +141,13 @@ def reconstruct_vllm(args, model_path, convs, tokens_per_page):
     # construction and let the processor use its default call signature.
     for module in (vllm_dsocr_model, vllm_dsocr_processor):
         module.BASE_SIZE = args.base_size
-        module.IMAGE_SIZE = args.base_size
-        module.CROP_MODE = False
+        module.IMAGE_SIZE = args.image_size
+        module.CROP_MODE = args.crop_mode
+    # vLLM binds CROP_MODE into this keyword-only default at import time.
+    # Keep preprocessing and model-side token accounting in sync.
+    vllm_dsocr_processor.DeepseekOCRProcessor.__call__.__kwdefaults__[
+        "crop_mode"
+    ] = args.crop_mode
     ngram_processor = vllm_dsocr_model.NGramPerReqLogitsProcessor
 
     def override_hf_config(config):
@@ -146,6 +158,11 @@ def reconstruct_vllm(args, model_path, convs, tokens_per_page):
         else:
             vision_config.image_size = args.base_size
         return config
+    hf_overrides = (
+        {"architectures": ["DeepseekOCRForCausalLM"]}
+        if args.base_size == 1024
+        else override_hf_config
+    )
 
     prompts = []
     owners = []
@@ -177,10 +194,11 @@ def reconstruct_vllm(args, model_path, convs, tokens_per_page):
         max_num_batched_tokens=args.max_num_batched_tokens,
         gpu_memory_utilization=args.gpu_mem_util,
         dtype="auto",
-        enforce_eager=args.enforce_eager or args.base_size == 1024,
+        enforce_eager=args.enforce_eager,
         mm_processor_cache_gb=0,
+        enable_prefix_caching=False,
         logits_processors=[ngram_processor],
-        hf_overrides=override_hf_config,
+        hf_overrides=hf_overrides,
     )
     sampling = SamplingParams(
         temperature=0,
@@ -238,7 +256,8 @@ def reconstruct_native(args, model_path, data, convs, tokens_per_page):
             text = model.infer(
                 tok, prompt="<image>\nFree OCR.", image_file=img_path,
                 output_path=out_path, base_size=args.base_size,
-                image_size=args.base_size, crop_mode=False, eval_mode=True)
+                image_size=args.image_size, crop_mode=args.crop_mode,
+                eval_mode=True)
             recon.append(text if isinstance(text, str) else str(text))
         return "\n".join(recon), len(pages)
 

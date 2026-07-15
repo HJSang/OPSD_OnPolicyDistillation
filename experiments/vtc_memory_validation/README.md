@@ -155,7 +155,12 @@ more important than producing identical checkpoints.
 
 The eight-GPU main-table launcher sets DeepSeek-OCR `--max_num_seqs 64`, which
 was validated on a 192 GB B200. Lower this value when reproducing the OCR rows
-on GPUs with less memory.
+on GPUs with less memory. OCR input size defaults to `base_size`, matching
+DeepSeek-OCR's Tiny, Small, and Base processor modes.
+The vLLM runner disables prefix caching per the model's official recipe and
+synchronizes vLLM's import-time `crop_mode` processor default with model-side
+token accounting. Without the latter, no-crop Base mode can silently generate
+corrupted reconstructions.
 
 Common path variables:
 
