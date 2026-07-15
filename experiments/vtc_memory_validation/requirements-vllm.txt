@@ -1,0 +1,10 @@
+vllm==0.11.2
+blake3==1.0.9
+py-cpuinfo==9.0.0
+prometheus-fastapi-instrumentator==7.1.0
+lm-format-enforcer==0.11.3
+mistral_common==1.8.5
+depyf==0.20.0
+python-json-logger==4.0.0
+model-hosting-container-standards==0.1.16
+xformers==0.0.33.post1

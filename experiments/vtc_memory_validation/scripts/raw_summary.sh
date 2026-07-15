@@ -18,5 +18,6 @@ OUT="${OUT:-${VTC_RESULTS_DIR}/results_longmemeval_raw_summary_${LIMIT}.json}"
   --shuffle \
   --seed "${SEED}" \
   --text_model "${TEXT_MODEL}" \
+  --skip_judge \
   --out "${OUT}" \
   "$@"

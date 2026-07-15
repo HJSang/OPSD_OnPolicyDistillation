@@ -8,13 +8,13 @@ DECODER="${DECODER:-qwen2.5-7b}"
 FACTORS="${FACTORS:-4 8 16}"
 STEPS="${STEPS:-1000}"
 N_CHUNKS="${N_CHUNKS:-400}"
-MAX_LEN="${MAX_LEN:-256}"
-BATCH_SIZE="${BATCH_SIZE:-4}"
+MAX_LEN="${MAX_LEN:-2048}"
+BATCH_SIZE="${BATCH_SIZE:-1}"
 LR="${LR:-1e-4}"
 ENC_LAYERS="${ENC_LAYERS:-2}"
 POOL="${POOL:-mean}"
 FKL_WEIGHT="${FKL_WEIGHT:-1.0}"
-TRAIN_ENCODER="${TRAIN_ENCODER:-1}"
+TRAIN_ENCODER="${TRAIN_ENCODER:-0}"
 LIMIT="${LIMIT:-500}"
 SEED="${SEED:-0}"
 TRAIN_DATASET="${TRAIN_DATASET:-ultrachat}"
@@ -39,6 +39,7 @@ for factor in ${FACTORS}; do
     --steps "${STEPS}"
     --lr "${LR}"
     --fkl_weight "${FKL_WEIGHT}"
+    --seed "${SEED}"
     --save "${ckpt}"
   )
   if enable_flag "${TRAIN_ENCODER}"; then
@@ -53,5 +54,6 @@ for factor in ${FACTORS}; do
     --limit "${LIMIT}" \
     --shuffle \
     --seed "${SEED}" \
+    --skip_judge \
     --out "${out}"
 done

@@ -9,7 +9,7 @@ image="${VTC_DOCKER_IMAGE:-vtc-memory-validation:cu129}"
 hf_home="${VTC_HF_HOME:-${HOME}/.cache/huggingface}"
 runs_dir="${VTC_RUNS_DIR:-${experiment_dir}/.docker-runs}"
 
-mkdir -p "${hf_home}" "${runs_dir}"/{data,results,checkpoints}
+mkdir -p "${hf_home}" "${runs_dir}"/{data,results,checkpoints,logs}
 
 tty_args=()
 if [[ -t 0 && -t 1 ]]; then
@@ -18,7 +18,12 @@ fi
 
 env_args=()
 for name in \
+  CUDA_VISIBLE_DEVICES \
   HF_TOKEN \
+  JUDGE_MODEL \
+  JUDGE_QUANTIZATION \
+  JUDGE_REVISION \
+  JUDGE_TP \
   VTC_MODEL_QWEN2_5_7B \
   VTC_MODEL_QWEN3_4B \
   VTC_MODEL_QWEN3_5_4B \

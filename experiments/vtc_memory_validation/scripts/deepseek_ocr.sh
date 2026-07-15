@@ -4,8 +4,13 @@ source "$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)/common.sh"
 
 ensure_memory_data longmemeval_oracle.json
 
-if [[ -x "${VTC_EXPERIMENT_DIR}/.venv-deepseek-ocr/bin/python" ]]; then
+ENGINE="${ENGINE:-vllm}"
+if [[ "${ENGINE}" == "vllm" ]]; then
+  default_dsocr_python="${PYTHON}"
+elif [[ -x "${VTC_EXPERIMENT_DIR}/.venv-deepseek-ocr/bin/python" ]]; then
   default_dsocr_python="${VTC_EXPERIMENT_DIR}/.venv-deepseek-ocr/bin/python"
+elif [[ -x "${VTC_DSOCR_NATIVE_PYTHON:-}" ]]; then
+  default_dsocr_python="${VTC_DSOCR_NATIVE_PYTHON}"
 else
   default_dsocr_python="${PYTHON}"
 fi
@@ -29,6 +34,7 @@ for base_size in ${BASE_SIZES}; do
     --shuffle \
     --seed "${SEED}" \
     --mode "${MODE}" \
+    --engine "${ENGINE}" \
     --base_size "${base_size}" \
     --render_size "${RENDER_SIZE}" \
     --font_size "${FONT_SIZE}" \
@@ -45,5 +51,6 @@ for base_size in ${BASE_SIZES}; do
     --shuffle \
     --seed "${SEED}" \
     --text_model "${TEXT_MODEL}" \
+    --skip_judge \
     --out "${out}"
 done

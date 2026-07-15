@@ -18,6 +18,7 @@ EXPECTED = {
     "sglang": "0.5.9",
     "torch": "2.9.1+cu129",
     "transformers": "4.57.1",
+    "vllm": "0.11.2",
 }
 
 
@@ -34,7 +35,8 @@ def main():
         if actual != expected:
             mismatches.append(f"{package}: expected {expected}, got {actual}")
 
-    for module in ("PIL", "qwen_vl_utils", "ray", "sglang", "transformers"):
+    for module in ("PIL", "qwen_vl_utils", "ray", "sglang", "transformers",
+                   "vllm"):
         importlib.import_module(module)
 
     print(f"torch.version.cuda={torch.version.cuda}")

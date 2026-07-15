@@ -21,6 +21,9 @@ import json
 import os
 import sys
 
+# Required by deterministic CUDA matrix multiplications.
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
 import torch
 import torch.nn.functional as F
 
@@ -51,7 +54,7 @@ def _iter_text_items(dataset_name, data):
 
 
 def make_long_examples(dataset_name, data_path, tokenizer, max_mem_tokens,
-                       target_len, n_examples, min_mem_tokens=512):
+                       target_len, n_examples, min_mem_tokens=512, seed=0):
     """Build (context_ids, target_ids) pairs for long-context training.
 
     Each example compresses a long context span (up to `max_mem_tokens`, so the
@@ -73,7 +76,7 @@ def make_long_examples(dataset_name, data_path, tokenizer, max_mem_tokens,
     length. Returns a list of (context_ids[1,N], target_ids[1,T]) tensor pairs.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(seed)
     data = rv.load_json(data_path)
     items = list(_iter_text_items(dataset_name, data))
     # pre-tokenize every conversation once
@@ -220,12 +223,13 @@ def _run_long_context_training(args, comp, decoder, tok, opt):
     degenerating on LoCoMo-length inputs.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     print(f"[st][long] building long-context examples up to "
           f"{args.max_mem_tokens} ctx tokens (target {args.target_len})")
     examples = make_long_examples(
         args.dataset, args.data, tok, args.max_mem_tokens, args.target_len,
-        n_examples=args.n_chunks, min_mem_tokens=args.min_mem_tokens)
+        n_examples=args.n_chunks, min_mem_tokens=args.min_mem_tokens,
+        seed=args.seed)
     print(f"[st][long] got {len(examples)} examples")
     if not examples:
         raise RuntimeError("no long-context examples built; check data/lengths")
@@ -385,7 +389,7 @@ def _run_qa_recon_training(args, comp, decoder, tok, opt):
     in the conversational domain that matches LoCoMo while QA teaches extraction.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     qa_items = _load_qa_items(args.data)
     qa_instr = _qa_instr(args)
     print(f"[st][qa+recon] loaded {len(qa_items)} QA triples from {args.data}")
@@ -523,7 +527,7 @@ def _run_mix_manifest_training(args, comp, decoder, tok, opt):
     reconstruction example plus one QA example every step.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     streams = _load_mix_streams(args, tok)
     qa_instr = _qa_instr(args)
     weights = [s["weight"] for s in streams]
@@ -580,7 +584,7 @@ def _run_qa_training(args, comp, decoder, tok, opt):
     -> answer) far better than autoencoding.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     items = _load_qa_items(args.data)
     qa_instr = _qa_instr(args)
     print(f"[st][qa] loaded {len(items)} (passage, q, a) triples")
@@ -705,6 +709,10 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--fkl_weight", type=float, default=0.0,
                     help="weight on forward-KL to full-text next-token dist")
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--non_deterministic", action="store_true",
+                    help="allow nondeterministic CUDA kernels (faster, but "
+                         "identical runs may produce different checkpoints)")
     ap.add_argument("--smoke", action="store_true", help="tiny run to verify")
     ap.add_argument("--save", default=os.path.join(
         rv.EXPERIMENT_DIR, "checkpoints", "softtoken.pt"))
@@ -716,6 +724,14 @@ def main():
                          "trained head (adapter/gate/pool/encoder) via "
                          "comp.load_trained; the optimizer restarts fresh.")
     args = ap.parse_args()
+
+    import random
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    if not args.non_deterministic:
+        torch.use_deterministic_algorithms(True)
+        torch.backends.cudnn.benchmark = False
 
     if args.smoke:
         args.steps, args.n_chunks, args.max_len = 20, 8, 128
@@ -795,8 +811,7 @@ def main():
         _ = comp.forward_with_soft_list(soft_list, ids[:, :args.max_len // 2])
         print("[st][full] per-turn encode + decode OK")
 
-    import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     comp.train()
     n_ch = len(chunks)
     for step in range(args.steps):

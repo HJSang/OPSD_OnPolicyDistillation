@@ -41,6 +41,7 @@ the original jobs:
 | PyTorch | 2.9.1+cu129 |
 | SGLang | 0.5.9 |
 | Ray | 2.54.0 |
+| vLLM (OCR/judge) | 0.11.2 |
 | Transformers | 4.57.1 |
 
 This stack was validated on NVIDIA B200 GPUs with driver `580.167.08`.
@@ -52,6 +53,16 @@ experiments/vtc_memory_validation/docker/build.sh
 experiments/vtc_memory_validation/docker/run.sh \
   python docker/verify_environment.py --require-gpu
 ```
+
+To reproduce all rows in the paper's main table on eight GPUs, retain each
+stage's log, and score every prediction with one judge-model load:
+
+```bash
+HF_TOKEN=... experiments/vtc_memory_validation/scripts/reproduce_main_table.sh
+```
+
+Artifacts are written under
+`experiments/vtc_memory_validation/.docker-runs/main-table` by default.
 
 The runner mounts the repository at `/workspace`, Hugging Face cache at
 `/cache/huggingface`, and generated data, checkpoints, and results at
@@ -65,7 +76,7 @@ experiments/vtc_memory_validation/docker/run.sh \
   hf download Qwen/Qwen2.5-7B-Instruct \
     --revision a09a35458c702b33eeacc393d103063234e8bc28
 
-export VTC_MODEL_QWEN2_5_7B=/cache/huggingface/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28
+export VTC_MODEL_QWEN2_5_7B=/cache/huggingface/hub/models--Qwen--Qwen2.5-7B-Instruct/snapshots/a09a35458c702b33eeacc393d103063234e8bc28
 experiments/vtc_memory_validation/docker/run.sh \
   bash scripts/raw_summary.sh
 ```
@@ -79,7 +90,7 @@ experiments/vtc_memory_validation/docker/run.sh \
   hf download deepseek-ai/DeepSeek-OCR \
     --revision 9f30c71f441d010e5429c532364a86705536c53a
 
-export VTC_MODEL_DEEPSEEK_OCR=/cache/huggingface/models--deepseek-ai--DeepSeek-OCR/snapshots/9f30c71f441d010e5429c532364a86705536c53a
+export VTC_MODEL_DEEPSEEK_OCR=/cache/huggingface/hub/models--deepseek-ai--DeepSeek-OCR/snapshots/9f30c71f441d010e5429c532364a86705536c53a
 experiments/vtc_memory_validation/docker/run.sh \
   bash scripts/deepseek_ocr.sh
 ```
@@ -131,6 +142,13 @@ VTC_CHECKPOINT_DIR=/mnt/checkpoints/vtc \
 experiments/vtc_memory_validation/scripts/softtoken_simple.sh
 ```
 
+The default main-table recipe uses 1,000 steps over 400 UltraChat chunks,
+`MAX_LEN=2048`, `BATCH_SIZE=1`, two frozen borrowed encoder layers, mean
+pooling, forward-KL weight 1.0, learning rate `1e-4`, and seed 0. Training
+enables deterministic PyTorch/CUDA algorithms by default; pass
+`--non_deterministic` directly to `softtoken/train.py` only when throughput is
+more important than producing identical checkpoints.
+
 Common path variables:
 
 | Variable | Default |
@@ -152,6 +170,20 @@ Model alias overrides:
 | `VTC_MODEL_DEEPSEEK_OCR` | `deepseek-ai/DeepSeek-OCR` |
 
 Each variable may instead point to a local model directory.
+
+The generation scripts intentionally do not score their own answers. To apply
+the paper's official per-question-type LongMemEval protocol with the pinned
+Llama-3.1-70B-Instruct judge:
+
+```bash
+experiments/vtc_memory_validation/docker/run.sh \
+  bash scripts/official_judge.sh /runs/results/results_softtoken_simple_f4.json
+```
+
+The judge defaults to revision
+`1605565b47bb9346c5515c34102e054115b4f98b`, FP8, tensor parallelism 2,
+temperature 0, and 10 output tokens. Access to Meta's gated model repository is
+required. Set `HF_TOKEN` before starting the container.
 
 ## DeepSeek-OCR
 

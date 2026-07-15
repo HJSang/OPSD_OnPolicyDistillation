@@ -461,6 +461,9 @@ def main():
     ap.add_argument("--dsocr_cache", default="dsocr_cache.json",
                     help="Path to the DeepSeek-OCR reconstruction cache produced "
                          "by run_dsocr_reconstruct.py (used by the 'dsocr' condition)")
+    ap.add_argument("--skip_judge", action="store_true",
+                    help="only generate predictions; score them later with "
+                         "official_longmemeval_judge.py")
     ap.add_argument("--out", default=os.path.join(RESULTS_DIR, "results.json"))
     args = ap.parse_args()
 
@@ -505,13 +508,21 @@ def main():
 
     for idx, (si, conv_text, question, gold, cat_name) in enumerate(items):
         full_tok = text_model.count_tokens(conv_text)
+        qid = (
+            dataset[si].get("question_id")
+            if args.dataset == "longmemeval" else None
+        )
         rec = {"i": idx, "sample": si, "category": cat_name,
                "question": question, "gold": gold, "full_tokens": full_tok}
+        if qid:
+            rec["question_id"] = qid
 
         if "raw" in conditions:
             pred = text_model.chat(QA_SYSTEM, f"{conv_text}\n\nQuestion: {question}")
-            ok = judge(text_model, question, gold, pred)
-            results["raw"][cat_name].append(ok)
+            ok = None if args.skip_judge else judge(
+                text_model, question, gold, pred)
+            if ok is not None:
+                results["raw"][cat_name].append(ok)
             ratio_stats["raw"].append(1.0)
             rec["raw_pred"], rec["raw_ok"] = pred, ok
 
@@ -523,8 +534,10 @@ def main():
             summ_tok = text_model.count_tokens(summ)
             ratio = full_tok / max(1, summ_tok)
             pred = text_model.chat(QA_SYSTEM, f"{summ}\n\nQuestion: {question}")
-            ok = judge(text_model, question, gold, pred)
-            results["summary"][cat_name].append(ok)
+            ok = None if args.skip_judge else judge(
+                text_model, question, gold, pred)
+            if ok is not None:
+                results["summary"][cat_name].append(ok)
             ratio_stats["summary"].append(ratio)
             rec["summary_pred"], rec["summary_ok"] = pred, ok
             rec["summary_tokens"] = summ_tok
@@ -538,8 +551,10 @@ def main():
             img_tok = vl_model.count_image_tokens(images, question)
             ratio = full_tok / max(1, img_tok)
             pred = vl_model.chat(images, f"Question: {question}")
-            ok = judge(text_model, question, gold, pred)
-            results["vtc"][cat_name].append(ok)
+            ok = None if args.skip_judge else judge(
+                text_model, question, gold, pred)
+            if ok is not None:
+                results["vtc"][cat_name].append(ok)
             ratio_stats["vtc"].append(ratio)
             rec["vtc_pred"], rec["vtc_ok"] = pred, ok
             rec["vtc_tokens"], rec["vtc_pages"] = img_tok, len(images)
@@ -557,8 +572,10 @@ def main():
             vtok = entry["vision_tokens"] + entry.get("text_tokens", 0)
             ratio = full_tok / max(1, vtok)
             pred = text_model.chat(QA_SYSTEM, f"{recon}\n\nQuestion: {question}")
-            ok = judge(text_model, question, gold, pred)
-            results["dsocr"][cat_name].append(ok)
+            ok = None if args.skip_judge else judge(
+                text_model, question, gold, pred)
+            if ok is not None:
+                results["dsocr"][cat_name].append(ok)
             ratio_stats["dsocr"].append(ratio)
             rec["dsocr_pred"], rec["dsocr_ok"] = pred, ok
             rec["dsocr_tokens"], rec["dsocr_pages"] = vtok, entry["pages"]
@@ -574,6 +591,8 @@ def main():
         return sum(bools) / len(bools) if bools else float("nan")
 
     print("\n================ RESULTS ================")
+    if args.skip_judge:
+        print("Judging skipped; run official_longmemeval_judge.py on this output.")
     all_cats = sorted({c for cond in results for c in results[cond]})
     header = f"{'category':<14}" + "".join(f"{c:>12}" for c in conditions)
     print(header)

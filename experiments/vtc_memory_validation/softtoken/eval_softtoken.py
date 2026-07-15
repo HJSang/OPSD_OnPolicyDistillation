@@ -217,6 +217,9 @@ def main():
     ap.add_argument("--full_text", action="store_true",
                     help="eval-only readability control: answer from the full "
                          "uncompressed text instead of soft tokens.")
+    ap.add_argument("--skip_judge", action="store_true",
+                    help="only generate predictions; score them later with "
+                         "official_longmemeval_judge.py")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -310,21 +313,29 @@ def main():
 
             pred = generate_from_soft(
                 comp, tok, soft.to(decoder.dtype), question, qa_instr)
-        ok = judge_simple(tok, comp, question, gold, pred)
-        results[cat].append(ok)
+        ok = None if args.skip_judge else judge_simple(
+            tok, comp, question, gold, pred)
+        if ok is not None:
+            results[cat].append(ok)
         ratios.append(n_tok / max(1, n_soft))
-        records.append({"i": idx, "category": cat, "question": question,
-                        "gold": gold, "pred": pred, "ok": ok,
-                        "tokens": n_tok, "soft_tokens": n_soft})
+        record = {"i": idx, "sample": si, "category": cat, "question": question,
+                  "gold": gold, "pred": pred, "ok": ok,
+                  "tokens": n_tok, "soft_tokens": n_soft}
+        if dataset == "longmemeval":
+            record["question_id"] = raw[si].get("question_id")
+        records.append(record)
         if (idx + 1) % 5 == 0:
             print(f"  ... {idx + 1}/{len(items)}")
 
     print("\n============ SOFTTOKEN RESULTS ============")
+    if args.skip_judge:
+        print("Judging skipped; run official_longmemeval_judge.py on this output.")
     for cat in sorted(results):
         b = results[cat]
         print(f"{cat:<16} {sum(b)/len(b):.3f}  (n={len(b)})")
     allb = [x for v in results.values() for x in v]
-    print(f"{'OVERALL':<16} {sum(allb)/len(allb):.3f}")
+    if allb:
+        print(f"{'OVERALL':<16} {sum(allb)/len(allb):.3f}")
     print(f"mean compression: {sum(ratios)/len(ratios):.2f}x")
 
     ckpt_name = os.path.splitext(os.path.basename(args.ckpt))[0]
