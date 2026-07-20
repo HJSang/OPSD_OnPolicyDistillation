@@ -45,6 +45,9 @@ exec docker run --rm "${tty_args[@]}" \
   --ipc host \
   --user "$(id -u):$(id -g)" \
   --env HOME=/tmp/vtc-home \
+  --env USER=vtc \
+  --env LOGNAME=vtc \
+  --env TORCHINDUCTOR_CACHE_DIR=/tmp/vtc-home/.cache/torchinductor \
   "${env_args[@]}" \
   --volume "${repo_root}:/workspace" \
   --volume "${hf_home}:/cache/huggingface" \

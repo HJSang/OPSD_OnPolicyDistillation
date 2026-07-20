@@ -22,6 +22,7 @@ LONGBENCH_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 import run_validation as rv
+from softtoken.prompting import render_user_prompt
 
 QA_DATASETS = [
     "narrativeqa",
@@ -156,8 +157,12 @@ def build_ocr_cache(args):
         torch.cuda.empty_cache()
 
 
-def generate_text(decoder, tok, prompt, max_new_tokens):
-    ids = tok(prompt, truncation=False, return_tensors="pt").input_ids.to(decoder.device)
+def generate_text(decoder, tok, prompt, max_new_tokens, prompt_format):
+    if prompt_format == "chat":
+        prompt = render_user_prompt(tok, prompt)
+    ids = tok(prompt, add_special_tokens=(prompt_format == "plain"),
+              truncation=False,
+              return_tensors="pt").input_ids.to(decoder.device)
     context_length = ids.shape[-1]
     with torch.no_grad():
         out = decoder.generate(
@@ -187,7 +192,8 @@ def write_predictions(args):
     out_root = Path(args.out_root) if args.out_root else official_dir / "pred" / args.run_name
     out_root.mkdir(parents=True, exist_ok=True)
     meta = {"condition": "dsocr", "decoder": args.decoder,
-            "cache": args.cache, "datasets": [], "records": {}}
+            "cache": args.cache, "prompt_format": args.prompt_format,
+            "datasets": [], "records": {}}
 
     rows_by_dataset = {}
     for dataset, idx, row in selected_rows(args):
@@ -203,7 +209,9 @@ def write_predictions(args):
                 cached = cache[key]
                 prompt = prompts[dataset].format(
                     context=cached["reconstructed"], input=row["input"])
-                pred = generate_text(decoder, tok, prompt, int(maxlens[dataset]))
+                pred = generate_text(
+                    decoder, tok, prompt, int(maxlens[dataset]),
+                    args.prompt_format)
                 raw_tokens = len(tok(row["context"], add_special_tokens=False).input_ids)
                 ratios.append(raw_tokens / max(1, cached.get("vision_tokens", 0)))
                 f.write(json.dumps({
@@ -237,6 +245,8 @@ def main():
     ap.add_argument("--out_root", default=None)
 
     ap.add_argument("--decoder", default="qwen3-8b")
+    ap.add_argument("--prompt_format", choices=["chat", "plain"], default="chat",
+                    help="Reader prompt format. plain reproduces legacy runs.")
     ap.add_argument("--dsocr_model_path",
                     default=os.environ.get(
                         "VTC_MODEL_DEEPSEEK_OCR",

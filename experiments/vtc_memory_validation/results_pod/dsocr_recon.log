@@ -1,9 +1,9 @@
 [dsocr] 1 unique conversations to reconstruct (base_size=1024, 256 tok/page)
-[dsocr] loading /home/jobuser/models/DeepSeek-OCR
+[dsocr] loading deepseek-ai/DeepSeek-OCR
 You are using a model of type deepseek_vl_v2 to instantiate a model of type DeepseekOCR. This is not supported for all configurations of models and can yield errors.
-Some weights of DeepseekOCRForCausalLM were not initialized from the model checkpoint at /home/jobuser/models/DeepSeek-OCR and are newly initialized: ['model.vision_model.embeddings.position_ids']
+Some weights of DeepseekOCRForCausalLM were not initialized from the model checkpoint at deepseek-ai/DeepSeek-OCR and are newly initialized: ['model.vision_model.embeddings.position_ids']
 You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-/home/jobuser/dsocr_env/lib/python3.10/site-packages/transformers/generation/configuration_utils.py:590: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.0` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
+/opt/vtc-deepseek-ocr/lib/python3.10/site-packages/transformers/generation/configuration_utils.py:590: UserWarning: `do_sample` is set to `False`. However, `temperature` is set to `0.0` -- this flag is only used in sample-based generation modes. You should set `do_sample=True` or unset `temperature`.
   warnings.warn(
 The attention mask and the pad token id were not set. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
 Setting `pad_token_id` to `eos_token_id`:None for open-end generation.

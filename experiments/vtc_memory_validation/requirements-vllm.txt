@@ -1,4 +1,9 @@
 vllm==0.11.2
+cachetools==6.2.6
+cbor2==6.1.3
+llvmlite==0.44.0
+numba==0.61.2
+watchfiles==1.2.0
 blake3==1.0.9
 py-cpuinfo==9.0.0
 prometheus-fastapi-instrumentator==7.1.0

@@ -1,5 +1,5 @@
 [data] longmemeval: 16 QA items (from 500 instances)
-[text] loading /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[text] loading Qwen/Qwen2.5-7B-Instruct
 [transformers] `torch_dtype` is deprecated! Use `dtype` instead!
 Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   1%|          | 2/339 [00:00<00:36,  9.11it/s]Loading weights:   6%|▋         | 22/339 [00:00<00:03, 83.75it/s]Loading weights:  12%|█▏        | 42/339 [00:00<00:02, 124.33it/s]Loading weights:  19%|█▉        | 66/339 [00:00<00:01, 159.98it/s]Loading weights:  27%|██▋       | 90/339 [00:00<00:01, 182.30it/s]Loading weights:  34%|███▎      | 114/339 [00:00<00:01, 196.78it/s]Loading weights:  40%|████      | 136/339 [00:00<00:01, 200.29it/s]Loading weights:  48%|████▊     | 162/339 [00:00<00:00, 215.02it/s]Loading weights:  55%|█████▍    | 186/339 [00:01<00:00, 217.98it/s]Loading weights:  62%|██████▏   | 210/339 [00:01<00:00, 218.17it/s]Loading weights:  69%|██████▉   | 234/339 [00:01<00:00, 219.44it/s]Loading weights:  76%|███████▌  | 258/339 [00:01<00:00, 219.91it/s]Loading weights:  83%|████████▎ | 282/339 [00:01<00:00, 221.14it/s]Loading weights:  90%|█████████ | 306/339 [00:01<00:00, 222.25it/s]Loading weights:  97%|█████████▋| 329/339 [00:01<00:00, 220.10it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 197.89it/s]
   ... 5/16 done

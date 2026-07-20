@@ -30,6 +30,12 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import run_validation as rv
 from softtoken.compressor import SoftTokenCompressor, build_role_segments
+from softtoken.prompting import (
+    SOFT_CONTEXT_MARKER,
+    render_user_prompt,
+    resolve_prompt_format,
+    split_chat_prompt,
+)
 
 
 QA_INSTR_ABSTAIN = ("\n\nAnswer the question using only the conversation above. "
@@ -37,13 +43,8 @@ QA_INSTR_ABSTAIN = ("\n\nAnswer the question using only the conversation above. 
 QA_INSTR_NO_ABSTAIN = ("\n\nAnswer the question using only the conversation above. "
                        "Give a short answer.\nQuestion: ")
 
-# When answering from soft tokens the reader is fed a bare text continuation
-# ([soft ; question] with no chat template), so it runs in transcript-completion
-# mode and frequently keeps decoding past its answer, hallucinating fake
-# follow-up turns ("\nuser: ...\nAnswer: ..."). Those leaked turns are not part
-# of the answer but drag an LLM judge toward "no". We cut the response at the
-# first leaked-turn marker so only the actual answer is scored. This recovers
-# ~0.10-0.12 accuracy on LongMemEval and is the honest decoding boundary.
+# Legacy plain-prompt checkpoints can continue decoding into fake follow-up
+# turns. Keep this boundary for backward-compatible evaluation of those runs.
 LEAK_MARKERS = ("\nuser:", "\nUser:", "\nUSER:", "\nassistant:", "\nAssistant:",
                 "\nAnswer:", "\nQuestion:", "\nQ:", "\nA:", "\nB:")
 
@@ -55,12 +56,30 @@ def strip_leaked_turns(text):
     return text.strip()
 
 
-def generate_from_soft(comp, tok, soft, question, qa_instr, max_new_tokens=64):
-    """soft: (1, M, d). Feed [soft ; question_emb] and greedily decode."""
-    q_ids = tok(qa_instr + question + "\nAnswer:", return_tensors="pt")[
+def _prompt_parts(tok, context, question, qa_instr, prompt_format):
+    if prompt_format == "chat":
+        user_text = context + qa_instr + question
+        if context == SOFT_CONTEXT_MARKER:
+            return split_chat_prompt(tok, user_text)
+        return render_user_prompt(tok, user_text), None
+    suffix = qa_instr + question + "\nAnswer:"
+    return (context + suffix, None) if context != SOFT_CONTEXT_MARKER else ("", suffix)
+
+
+def generate_from_soft(comp, tok, soft, question, qa_instr, prompt_format,
+                       max_new_tokens=64):
+    """Feed chat-prefix embeddings around ``soft`` and greedily decode."""
+    left, right = _prompt_parts(
+        tok, SOFT_CONTEXT_MARKER, question, qa_instr, prompt_format)
+    left_ids = tok(left, add_special_tokens=False, return_tensors="pt")[
         "input_ids"].to(soft.device)
-    q_emb = comp.embed_tokens(q_ids)
-    inp = torch.cat([soft, q_emb], dim=1)
+    right_ids = tok(
+        right, add_special_tokens=(prompt_format == "plain"),
+        return_tensors="pt")[
+        "input_ids"].to(soft.device)
+    left_emb = comp.embed_tokens(left_ids)
+    right_emb = comp.embed_tokens(right_ids)
+    inp = torch.cat([left_emb, soft, right_emb], dim=1)
     attn = torch.ones(inp.shape[:2], dtype=torch.long, device=inp.device)
     eos_ids = [i for i in (tok.eos_token_id,
                            tok.convert_tokens_to_ids("<|im_end|>"))
@@ -76,10 +95,12 @@ def generate_from_soft(comp, tok, soft, question, qa_instr, max_new_tokens=64):
 
 
 def generate_from_full_text(decoder, tok, conversation, question, qa_instr,
-                            max_new_tokens=64):
+                            prompt_format, max_new_tokens=64):
     """Uncompressed readability control: feed full text tokens directly."""
-    prompt = conversation + qa_instr + question + "\nAnswer:"
-    ids = tok(prompt, return_tensors="pt")["input_ids"].cuda()
+    prompt, _ = _prompt_parts(
+        tok, conversation, question, qa_instr, prompt_format)
+    ids = tok(prompt, add_special_tokens=(prompt_format == "plain"),
+              return_tensors="pt")["input_ids"].cuda()
     eos_ids = [i for i in (tok.eos_token_id,
                            tok.convert_tokens_to_ids("<|im_end|>"))
                if isinstance(i, int) and i >= 0]
@@ -92,14 +113,17 @@ def generate_from_full_text(decoder, tok, conversation, question, qa_instr,
     return strip_leaked_turns(text)
 
 
-def judge_simple(tok, comp, question, gold, pred):
+def judge_simple(tok, comp, question, gold, pred, prompt_format):
     ng, np_ = rv.normalize(gold), rv.normalize(pred)
     if ng and (ng == np_ or ng in np_ or np_ in ng):
         return True
     # lightweight judge using the same decoder over text tokens
     msg = (f"Question: {question}\nGold: {gold}\nAnswer: {pred}\n"
            f"Is the answer correct? Reply CORRECT or WRONG.\n")
-    ids = tok(msg, return_tensors="pt")["input_ids"].cuda()
+    if prompt_format == "chat":
+        msg = render_user_prompt(tok, msg)
+    ids = tok(msg, add_special_tokens=(prompt_format == "plain"),
+              return_tensors="pt")["input_ids"].cuda()
     with torch.no_grad():
         out = comp.decoder.generate(input_ids=ids, max_new_tokens=4, do_sample=False)
     verdict = tok.decode(out[0][ids.shape[1]:], skip_special_tokens=True)
@@ -220,6 +244,10 @@ def main():
     ap.add_argument("--skip_judge", action="store_true",
                     help="only generate predictions; score them later with "
                          "official_longmemeval_judge.py")
+    ap.add_argument("--prompt_format", choices=["auto", "chat", "plain"],
+                    default="auto",
+                    help="Reader prompt format. auto uses the checkpoint value; "
+                         "checkpoints created before this option remain plain.")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
@@ -232,6 +260,7 @@ def main():
     assistant_factor = args.assistant_factor or ck_args.get("assistant_factor", 16)
     dataset = args.dataset
     data = args.data
+    prompt_format = resolve_prompt_format(args.prompt_format, ck_args)
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
     path = rv.resolve_model(args.decoder or ck_args.get("decoder", "qwen2.5-7b"))
@@ -267,7 +296,8 @@ def main():
     comp.load_trained(args.ckpt)
     comp.eval()
     print(f"[eval] loaded ckpt {args.ckpt} (mode={mode}, "
-          f"pool={pool_mode}, train_encoder={train_encoder})")
+          f"pool={pool_mode}, train_encoder={train_encoder}, "
+          f"prompt_format={prompt_format})")
 
     raw = rv.load_json(data)
     items = list(_iter_eval_items(
@@ -291,7 +321,7 @@ def main():
         if args.full_text:
             n_soft = n_tok
             pred = generate_from_full_text(
-                decoder, tok, conv_text, question, qa_instr)
+                decoder, tok, conv_text, question, qa_instr, prompt_format)
         else:
             # build soft tokens
             with torch.no_grad():
@@ -312,9 +342,10 @@ def main():
                     n_soft = soft.shape[1]
 
             pred = generate_from_soft(
-                comp, tok, soft.to(decoder.dtype), question, qa_instr)
+                comp, tok, soft.to(decoder.dtype), question, qa_instr,
+                prompt_format)
         ok = None if args.skip_judge else judge_simple(
-            tok, comp, question, gold, pred)
+            tok, comp, question, gold, pred, prompt_format)
         if ok is not None:
             results[cat].append(ok)
         ratios.append(n_tok / max(1, n_soft))
@@ -348,6 +379,7 @@ def main():
         json.dump({
             "checkpoint_args": ck_args,
             "eval_args": vars(args),
+            "resolved_prompt_format": prompt_format,
             "ckpt": args.ckpt,
             "records": records,
         }, f, indent=2)

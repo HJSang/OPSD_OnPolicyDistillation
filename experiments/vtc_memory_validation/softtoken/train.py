@@ -30,6 +30,10 @@ import torch.nn.functional as F
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import run_validation as rv  # resolve_model, data loaders
 from softtoken.compressor import SoftTokenCompressor
+from softtoken.prompting import (
+    SOFT_CONTEXT_MARKER,
+    split_chat_prompt,
+)
 
 
 def _iter_text_items(dataset_name, data):
@@ -321,8 +325,9 @@ def _load_qa_items(path):
     return items
 
 
-def _answer_ids(tok, answer):
-    ids = tok(" " + answer, return_tensors="pt",
+def _answer_ids(tok, answer, prompt_format):
+    text = answer if prompt_format == "chat" else " " + answer
+    ids = tok(text, return_tensors="pt",
               add_special_tokens=False)["input_ids"]
     if tok.eos_token_id is not None:
         eos = torch.tensor([[tok.eos_token_id]], dtype=ids.dtype)
@@ -330,21 +335,35 @@ def _answer_ids(tok, answer):
     return ids.cuda()
 
 
+def _qa_prompt_ids(tok, qa_instr, question, prompt_format):
+    if prompt_format == "chat":
+        left, right = split_chat_prompt(
+            tok, SOFT_CONTEXT_MARKER + qa_instr + question)
+    else:
+        left, right = "", qa_instr + question + "\nAnswer:"
+    left_ids = tok(left, return_tensors="pt",
+                   add_special_tokens=False)["input_ids"].cuda()
+    right_ids = tok(right, return_tensors="pt",
+                    add_special_tokens=False)["input_ids"].cuda()
+    return left_ids, right_ids
+
+
 def _qa_answer_loss(comp, decoder, tok, passage, question, answer, max_len,
-                    qa_instr=QA_INSTR):
+                    qa_instr=QA_INSTR, prompt_format="chat"):
     """Compress `passage`, feed [soft; question; answer], return CE on answer
     tokens only. Shared by pure-QA and QA+reconstruction training."""
     p_ids = tok(passage, return_tensors="pt",
                 truncation=True, max_length=max_len)["input_ids"].cuda()
-    q_ids = tok(qa_instr + question + "\nAnswer:",
-                return_tensors="pt", add_special_tokens=False)["input_ids"].cuda()
-    a_ids = _answer_ids(tok, answer)
+    left_ids, right_ids = _qa_prompt_ids(
+        tok, qa_instr, question, prompt_format)
+    a_ids = _answer_ids(tok, answer, prompt_format)
     soft = comp.encode(p_ids, torch.ones_like(p_ids))
     if isinstance(soft, list):
         soft = soft[0].unsqueeze(0)
-    q_emb = comp.embed_tokens(q_ids).to(soft.dtype)
+    left_emb = comp.embed_tokens(left_ids).to(soft.dtype)
+    right_emb = comp.embed_tokens(right_ids).to(soft.dtype)
     a_emb = comp.embed_tokens(a_ids).to(soft.dtype)
-    inp = torch.cat([soft, q_emb, a_emb], dim=1)
+    inp = torch.cat([left_emb, soft, right_emb, a_emb], dim=1)
     attn = torch.ones(inp.shape[:2], dtype=torch.long, device=inp.device)
     logits = decoder(inputs_embeds=inp, attention_mask=attn).logits
     A = a_ids.shape[1]
@@ -413,7 +432,8 @@ def _run_qa_recon_training(args, comp, decoder, tok, opt):
             # QA on a passage-QA triple
             p, q, a = qa_items[rng.randrange(nqa)]
             qa, M = _qa_answer_loss(
-                comp, decoder, tok, p, q, a, args.max_len, qa_instr)
+                comp, decoder, tok, p, q, a, args.max_len, qa_instr,
+                args.prompt_format)
             qa = qa / accum
             loss = rc + args.qa_weight * qa
             if torch.isfinite(loss):
@@ -551,7 +571,8 @@ def _run_mix_manifest_training(args, comp, decoder, tok, opt):
             else:
                 p, q, a = s["items"][rng.randrange(len(s["items"]))]
                 loss, _ = _qa_answer_loss(
-                    comp, decoder, tok, p, q, a, args.max_len, qa_instr)
+                    comp, decoder, tok, p, q, a, args.max_len, qa_instr,
+                    args.prompt_format)
                 loss = args.qa_weight * loss
                 qa_sum += float(loss.detach()) / max(args.qa_weight, 1e-12)
                 qa_n += 1
@@ -603,16 +624,17 @@ def _run_qa_training(args, comp, decoder, tok, opt):
             passage, question, answer = items[rng.randrange(n)]
             p_ids = tok(passage, return_tensors="pt",
                         truncation=True, max_length=args.max_len)["input_ids"].cuda()
-            q_ids = tok(qa_instr + question + "\nAnswer:",
-                        return_tensors="pt", add_special_tokens=False)["input_ids"].cuda()
-            a_ids = _answer_ids(tok, answer)
+            left_ids, right_ids = _qa_prompt_ids(
+                tok, qa_instr, question, args.prompt_format)
+            a_ids = _answer_ids(tok, answer, args.prompt_format)
 
             soft = comp.encode(p_ids, torch.ones_like(p_ids))       # (1, M, d)
             if isinstance(soft, list):
                 soft = soft[0].unsqueeze(0)
-            q_emb = comp.embed_tokens(q_ids).to(soft.dtype)
+            left_emb = comp.embed_tokens(left_ids).to(soft.dtype)
+            right_emb = comp.embed_tokens(right_ids).to(soft.dtype)
             a_emb = comp.embed_tokens(a_ids).to(soft.dtype)
-            inp = torch.cat([soft, q_emb, a_emb], dim=1)            # (1, M+Q+A, d)
+            inp = torch.cat([left_emb, soft, right_emb, a_emb], dim=1)
             attn = torch.ones(inp.shape[:2], dtype=torch.long, device=inp.device)
             out = decoder(inputs_embeds=inp, attention_mask=attn)
             logits = out.logits                                     # (1, L, V)
@@ -674,6 +696,9 @@ def main():
     ap.add_argument("--no_abstain", action="store_true",
                     help="[qa_train/qa_recon/mix_manifest] train with an "
                          "answerable-only QA prompt instead of NOT MENTIONED.")
+    ap.add_argument("--prompt_format", choices=["chat", "plain"], default="chat",
+                    help="Reader-facing QA prompt format. plain reproduces "
+                         "checkpoints created before chat-template support.")
     ap.add_argument("--qa_accum", type=int, default=8,
                     help="[qa_train] gradient-accumulation micro-batch size to "
                          "reduce single-example answer-CE variance.")
