@@ -116,6 +116,36 @@ $VTC_RUNS_DIR/results/results_softtoken_u1_a8_official_judge.json
 $VTC_RUNS_DIR/logs/
 ```
 
+## Reproduce Tables 2 And 3
+
+The paper labels the reader `Qwen2.5-7B`, while its setup specifies
+`Qwen/Qwen2.5-7B-Instruct`. The comparison launcher runs that checkpoint and
+the non-Instruct base checkpoint once each, with both tokenizer-provided chat
+templates:
+
+```bash
+export HF_TOKEN=your_hugging_face_token
+export VTC_RUNS_DIR="$PWD/experiments/vtc_memory_validation/.docker-runs/tables-2-3-qwen25"
+
+experiments/vtc_memory_validation/scripts/reproduce_tables_2_3_qwen25.sh
+```
+
+The launcher expects eight high-memory GPUs. It trains SoftMem `a8/a16/a32`,
+runs the three cached DeepSeek-OCR reader settings and text-summary baseline,
+evaluates the six Table 3 LongBench-QA subsets, and judges every Table 2
+prediction. Independent summary slices run after the other jobs and are merged
+back into the seeded evaluation order.
+
+To reuse complete OCR reconstruction caches from another run:
+
+```bash
+export VTC_DSOCR_CACHE_DIR=/path/to/results-with-dsocr-caches
+```
+
+The output directory retains isolated `base/` and `instruct/` checkpoints and
+results, one log per stage, `comparison-summary.md`, and
+`comparison-summary.json`.
+
 ## Reproduce The Full Main Table
 
 After building the image and exporting `HF_TOKEN`, run:

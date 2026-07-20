@@ -445,6 +445,8 @@ def main():
                     help="Registry name or full path for the VTC model")
     ap.add_argument("--limit", type=int, default=30,
                     help="Max total QA items to evaluate")
+    ap.add_argument("--offset", type=int, default=0,
+                    help="Skip this many items after optional shuffling")
     ap.add_argument("--limit_per_sample", type=int, default=None)
     ap.add_argument("--shuffle", action="store_true",
                     help="Shuffle items before applying --limit (needed for "
@@ -480,6 +482,8 @@ def main():
     if args.shuffle:
         import random
         random.Random(args.seed).shuffle(items)
+    if args.offset:
+        items = items[args.offset:]
     if args.limit:
         items = items[: args.limit]
     print(f"[data] {args.dataset}: {len(items)} QA items "
