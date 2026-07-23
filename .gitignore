@@ -1,3 +1,8 @@
 .DS_Store
 __pycache__/
 *.pyc
+experiments/vtc_memory_validation/checkpoints/
+experiments/vtc_memory_validation/data/
+experiments/vtc_memory_validation/results/
+experiments/vtc_memory_validation/.venv*/
+experiments/vtc_memory_validation/.docker-runs/

@@ -1,0 +1,10 @@
+transformers==4.46.3
+tokenizers==0.20.3
+torch
+accelerate
+pillow
+einops
+addict
+easydict
+timm
+sentencepiece

@@ -1,127 +1,268 @@
-# VTC-vs-Text on Conversational Memory — Zero-Training Validation
+# Reproducing Conversational-Memory Compression
 
-**Goal:** cheaply check the core research hypothesis before writing any training code:
+This directory contains the training, evaluation, and judging code for the
+paper's conversational-memory experiments. The primary benchmark is
+LongMemEval with oracle evidence. The evaluated context representations are:
 
-> Visual-Text Compression (VTC) hurts **conversational memory** more than text-based
-> compression, especially on **precise-fact / multi-hop** questions — because dialogue
-> is low-density and memory QA needs precise retrieval of user-stated facts.
+| Method | Context representation |
+|---|---|
+| `raw` | Original text |
+| `summary` | Model-generated factual summary |
+| `dsocr` | Text rendered as images and reconstructed by DeepSeek-OCR |
+| `softtoken simple` | Uniform learned pooling |
+| `softtoken role-aware` | User tokens preserved; assistant tokens pooled |
 
-No training. Just compare three ways of feeding a long LoCoMo conversation to a model
-and measure memory-QA accuracy **by question category** + the achieved compression ratio:
+The supported reproduction path uses only Docker, NVIDIA's container runtime,
+public container images, public datasets, and public Hugging Face model
+repositories. It does not require a cluster scheduler, shared filesystem, or
+organization-specific service.
 
-| condition | how the history is fed | role |
+## Prerequisites
+
+- Linux on x86-64
+- Docker Engine with the NVIDIA Container Toolkit
+- An NVIDIA GPU and a driver compatible with CUDA 12.9
+- Sufficient local storage for the selected model checkpoints
+- A Hugging Face token with access to
+  `meta-llama/Meta-Llama-3.1-70B-Instruct` for official judging
+
+Training and generation for one SoftMem configuration use one GPU. The default
+70B FP8 judge uses two GPUs. The full-table launcher runs the eight generation
+jobs concurrently and therefore expects eight GPUs.
+
+The environment was validated on NVIDIA B200 GPUs. Other recent NVIDIA GPUs
+should work when they have enough memory; lower batch and concurrency settings
+where noted below.
+
+## Build The Environment
+
+Run all commands from the repository root:
+
+```bash
+experiments/vtc_memory_validation/docker/build.sh
+
+experiments/vtc_memory_validation/docker/run.sh \
+  python docker/verify_environment.py --require-gpu
+```
+
+The image extends the public, digest-pinned
+`slimerl/slime@sha256:9b548a94930f5b1b03faaf481d0ed5c31d12302b7ca37cf2ca933c9c60d0975e`
+image. The verifier checks the Python package versions, imports the actual vLLM
+judge API, resolves the mapped container user, and executes a CUDA operation.
+
+Key versions are:
+
+| Component | Version |
+|---|---|
+| Python | 3.12.3 |
+| CUDA | 12.9 |
+| cuDNN | 9.16.0 |
+| NCCL | 2.27.5 |
+| PyTorch | 2.9.1+cu129 |
+| Transformers | 4.57.1 |
+| SGLang | 0.5.9 |
+| Ray | 2.54.0 |
+| vLLM | 0.11.2 |
+
+By default, Hugging Face files are cached under `~/.cache/huggingface` and run
+artifacts are stored under
+`experiments/vtc_memory_validation/.docker-runs`. Override these locations with
+`VTC_HF_HOME` and `VTC_RUNS_DIR`.
+
+## Reproduce One Main Result
+
+The following commands train and evaluate the role-aware `user=1,
+assistant=8` configuration used in the first SoftMem row of the paper's main
+LongMemEval table. They retain the checkpoint, predictions, official scores,
+and complete logs.
+
+```bash
+export HF_TOKEN=your_hugging_face_token
+export VTC_RUNS_DIR="$PWD/experiments/vtc_memory_validation/.docker-runs/softmem-a8"
+
+experiments/vtc_memory_validation/docker/run.sh \
+  python prepare_data.py --data_dir /runs/data \
+  2>&1 | tee "$VTC_RUNS_DIR/logs/prepare-data.log"
+
+CUDA_VISIBLE_DEVICES=0 \
+experiments/vtc_memory_validation/docker/run.sh \
+  bash -lc 'ASSISTANT_FACTORS=8 LIMIT=500 bash scripts/softtoken_role_aware.sh' \
+  2>&1 | tee "$VTC_RUNS_DIR/logs/softmem-a8.log"
+
+CUDA_VISIBLE_DEVICES=0,1 \
+experiments/vtc_memory_validation/docker/run.sh \
+  bash scripts/official_judge.sh \
+    /runs/results/results_softtoken_u1_a8.json \
+  2>&1 | tee "$VTC_RUNS_DIR/logs/official-judge-a8.log"
+```
+
+The verified seed-0 run produced:
+
+| Metric | Paper, 5 seeds | Reproduced, seed 0 |
+|---|---:|---:|
+| Compression | 4.62x | 4.6163x |
+| Overall accuracy | 0.476 +/- 0.014 | 0.512 |
+| User-fact accuracy | 0.938 +/- 0.007 | 0.9531 |
+
+A single run verifies the pipeline and one seed; it does not reproduce the
+paper's five-seed mean or standard deviation.
+
+The main artifacts are:
+
+```text
+$VTC_RUNS_DIR/checkpoints/softtoken_u1_a8.pt
+$VTC_RUNS_DIR/results/results_softtoken_u1_a8.json
+$VTC_RUNS_DIR/results/results_softtoken_u1_a8_official_judge.json
+$VTC_RUNS_DIR/logs/
+```
+
+## Reproduce Tables 2 And 3
+
+The paper labels the reader `Qwen2.5-7B`, while its setup specifies
+`Qwen/Qwen2.5-7B-Instruct`. The comparison launcher runs that checkpoint and
+the non-Instruct base checkpoint once each, with both tokenizer-provided chat
+templates:
+
+```bash
+export HF_TOKEN=your_hugging_face_token
+export VTC_RUNS_DIR="$PWD/experiments/vtc_memory_validation/.docker-runs/tables-2-3-qwen25"
+
+experiments/vtc_memory_validation/scripts/reproduce_tables_2_3_qwen25.sh
+```
+
+The launcher expects eight high-memory GPUs. It trains SoftMem `a8/a16/a32`,
+runs the three cached DeepSeek-OCR reader settings and text-summary baseline,
+evaluates the six Table 3 LongBench-QA subsets, and judges every Table 2
+prediction. Independent summary slices run after the other jobs and are merged
+back into the seeded evaluation order.
+
+To reuse complete OCR reconstruction caches from another run:
+
+```bash
+export VTC_DSOCR_CACHE_DIR=/path/to/results-with-dsocr-caches
+```
+
+The output directory retains isolated `base/` and `instruct/` checkpoints and
+results, one log per stage, `comparison-summary.md`, and
+`comparison-summary.json`.
+
+## Reproduce The Full Main Table
+
+After building the image and exporting `HF_TOKEN`, run:
+
+```bash
+experiments/vtc_memory_validation/scripts/reproduce_main_table.sh
+```
+
+The script:
+
+1. Verifies the container environment.
+2. Downloads pinned model revisions.
+3. Prepares the public datasets.
+4. Runs raw, summary, three uniform SoftMem, three role-aware SoftMem, and three
+   DeepSeek-OCR configurations across eight GPUs.
+5. Loads the official 70B judge once and scores all generated predictions.
+6. Retains a source manifest and one log per stage.
+
+The default output directory is
+`experiments/vtc_memory_validation/.docker-runs/main-table`.
+
+When running an exported source archive instead of a Git checkout, set
+`VTC_GIT_COMMIT` to the source revision that produced the archive.
+
+## Models And Data
+
+The full-table launcher pins these model revisions:
+
+| Purpose | Repository | Revision |
 |---|---|---|
-| `raw`     | full conversation as text            | upper bound |
-| `summary` | LLM-summarized conversation as text  | text compression baseline |
-| `vtc`     | conversation rendered to images → VLM | visual compression (the thing we suspect fails) |
+| SoftMem writer and reader | `Qwen/Qwen2.5-7B-Instruct` | `a09a35458c702b33eeacc393d103063234e8bc28` |
+| Visual reconstruction | `deepseek-ai/DeepSeek-OCR` | `9f30c71f441d010e5429c532364a86705536c53a` |
+| Official judge | `meta-llama/Meta-Llama-3.1-70B-Instruct` | `1605565b47bb9346c5515c34102e054115b4f98b` |
 
-**Expected signal (what would confirm the hypothesis):** `vtc` accuracy drops well
-below `raw`/`summary`, and the drop is largest on `single_hop` / `multi_hop` /
-`temporal` (precise retrieval), smaller on `open_domain`. If instead `vtc` ≈ `summary`
-everywhere, the hypothesis is weak and we rethink.
-
----
-
-## 1. Launch a GPU pod
-
-This repo now ships its own `mldev` config (`openconnect.json` +
-`workspace/src/workflows/interactive.py`), so you can launch a pod directly from
-here — no dependency on RLPilot.
-
-**Step 1a — launch a pod (from this repo root on your Mac):**
+`prepare_data.py` copies the tracked UltraChat subset and downloads LoCoMo and
+LongMemEval from their public sources. To prepare data outside Docker:
 
 ```bash
-cd /path/to/mldev_efficiency
-
-# VSCode-in-browser pod (h200_1)
-mldev run idev -d prod-lor1-k8s-2 --crew-id 3330
-# or an H100_2 pod:
-mldev run h100 -d prod-lva1-k8s-2 --crew-id 3330
-# available: idev (h200_1 vscode), h100 (h100_2), h100_8, h200 (h200_2)
+cd experiments/vtc_memory_validation
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+python3 prepare_data.py
 ```
 
-The `experiments/` directory is shipped as a resource, so the code lands on the
-pod. Grab the execution ID from the printed Flyte URL, wait for `Running`, then
-port-forward to the VSCode server:
+Model aliases may point to another public repository or a local directory:
+
+| Variable | Default |
+|---|---|
+| `VTC_MODEL_QWEN2_5_7B` | `Qwen/Qwen2.5-7B-Instruct` |
+| `VTC_MODEL_QWEN3_4B` | `Qwen/Qwen3-4B-Instruct-2507` |
+| `VTC_MODEL_QWEN3_5_4B` | `Qwen/Qwen3.5-4B` |
+| `VTC_MODEL_QWEN3_8B` | `Qwen/Qwen3-8B` |
+| `VTC_MODEL_QWEN2_5_VL_7B` | `Qwen/Qwen2.5-VL-7B-Instruct` |
+| `VTC_MODEL_DEEPSEEK_OCR` | `deepseek-ai/DeepSeek-OCR` |
+
+## Run Individual Methods
+
+The entrypoints can be invoked from any working directory:
 
 ```bash
-kubectl config use-context prod-lor1-k8s-2
-kubectl config set-context --current --namespace=training-coreai
-kubectl get pods -n training-coreai | grep <EXEC_ID>
-kubectl port-forward <EXEC_ID>-n0-0-master-0 8080:8080 -n training-coreai
-# open http://localhost:8080
+# Raw text and summary baselines
+experiments/vtc_memory_validation/scripts/raw_summary.sh
+
+# Uniform SoftMem factors 4, 8, and 16
+experiments/vtc_memory_validation/scripts/softtoken_simple.sh
+
+# Role-aware SoftMem with user factor 1 and assistant factors 8, 16, and 32
+experiments/vtc_memory_validation/scripts/softtoken_role_aware.sh
+
+# DeepSeek-OCR reconstruction
+experiments/vtc_memory_validation/scripts/deepseek_ocr.sh
+
+# LongBench task-adapted compressor and raw baseline
+experiments/vtc_memory_validation/scripts/longbench.sh
+experiments/vtc_memory_validation/scripts/longbench_raw.sh
 ```
 
-**Step 1b — on the pod, go to the experiment dir:**
+Use environment variables to change a run without editing source files:
 
 ```bash
-unset HTTPS_PROXY
-cd experiments/vtc_memory_validation   # shipped with the pod
+DECODER=Qwen/Qwen2.5-7B-Instruct \
+FACTORS="4 8" \
+STEPS=200 \
+LIMIT=50 \
+VTC_DATA_DIR=/path/to/data \
+VTC_RESULTS_DIR=/path/to/results \
+VTC_CHECKPOINT_DIR=/path/to/checkpoints \
+experiments/vtc_memory_validation/scripts/softtoken_simple.sh
 ```
 
-## 2. Install deps
+The main-table SoftMem recipe uses 1,000 steps, 400 UltraChat chunks,
+`MAX_LEN=2048`, `BATCH_SIZE=1`, two borrowed encoder layers, mean pooling,
+forward-KL weight 1.0, learning rate `1e-4`, and seed 0. Deterministic
+PyTorch/CUDA algorithms are enabled by default.
 
-The `mldev_verl_vllm_cu128_image` already has torch + transformers, but pin the extras:
+## Prompt Protocol
 
-```bash
-pip install -r requirements.txt
-```
+Reader-facing QA uses the selected Instruct model's chat template, including
+its assistant-generation prefix. For soft-token inference, the template is
+rendered once around a placeholder and the continuous context embeddings replace
+that placeholder. Qwen3 templates are rendered with thinking disabled.
 
-## 3. Prepare data
+New checkpoints record `prompt_format=chat`. Evaluation in `auto` mode treats
+older checkpoints without this field as `plain`, preserving their historical
+behavior. Scores from the legacy plain-prompt protocol must not be compared
+directly with scores from the chat-template protocol.
 
-For the zero-shot soft-token experiments, training uses a sampled UltraChat subset and evaluation uses LongMemEval:
+## Resource Tuning
 
-```bash
-python prepare_data.py --stage_dir /shared/public/sharing/vtc_memory/data
-```
+The official judge defaults to FP8 and tensor parallelism 2. Set `JUDGE_TP`,
+`JUDGE_QUANTIZATION`, or `JUDGE_MODEL` to change it.
 
-`prepare_data.py` writes `data/ultrachat_train.json` by reusing the bundled tracked
-2,000-conversation UltraChat subset in `longmemeval_evaluation_training_data/`
-unless `--refresh_ultrachat` is passed. `--stage_dir` copies this UltraChat subset
-and LongMemEval to the NFS location used by offline batch sweeps.
+The full-table launcher sets DeepSeek-OCR `--max_num_seqs 64`, which was
+validated on a 192 GB GPU. Reduce this value on smaller GPUs. The native
+DeepSeek-OCR fallback uses the isolated
+`/opt/vtc-deepseek-ocr/bin/python` environment included in the image.
 
-## 4. Smoke test, then full run
-
-```bash
-# 1) text path only, 5 items — confirms data loads + text model works
-python run_validation.py --limit 5 --conditions raw
-
-# 2) add text compression
-python run_validation.py --limit 10 --conditions raw,summary
-
-# 3) full three-way comparison
-python run_validation.py --limit 30 --conditions raw,summary,vtc
-```
-
-Output: a per-category accuracy table for each condition + mean compression ratio,
-and `results.json` with every prediction for inspection.
-
-For the UltraChat-subset → LongMemEval soft-token sweep:
-
-```bash
-mldev run vtc_sweep -e softtoken_full_u1_zeroshot -d prod-lva1-k8s-2 --crew-id 3330
-```
-
----
-
-## Things to verify on first run (I could not test locally — this Mac has no GPU)
-
-1. **LoCoMo data URL.** Default is
-   `https://raw.githubusercontent.com/snap-research/locomo/main/data/locomo10.json`.
-   If it 404s, find the correct `locomo10.json` and pass `--data_path /path/to/locomo10.json`.
-   The parser expects each sample to have `conversation` (with `session_N` +
-   `session_N_date_time`) and `qa` (with `question`, `answer`, `category`).
-2. **Qwen2.5-VL class import.** Needs `transformers>=4.49`. If the
-   `Qwen2_5_VLForConditionalGeneration` import fails, upgrade transformers.
-3. **Font for rendering.** Falls back to `DejaVuSansMono.ttf` then PIL default.
-   Pass `--font_path` if you want a specific font.
-4. **Compression ratio knobs.** `--summary_ratio` (text) and `--font_size` (smaller
-   font → more text per image → higher VTC ratio) let you match compression ratios
-   across conditions for a fair comparison.
-
-## Next steps after the signal
-
-- If confirmed: add **LongMemEval** (primary benchmark, has info-extraction /
-  knowledge-update types) and the attribution probes (entity-shuffle to remove
-  language priors; user-message vs assistant-message compression sensitivity).
-- Then move to the method (memory-aware selective compression).
+Generated data, checkpoints, results, and logs are intentionally excluded from
+Git. Keep the complete run directory when reporting a reproduction.

@@ -2,7 +2,7 @@
 """
 Plot compression-ratio vs accuracy curves for every method on LongMemEval.
 
-Reads the result JSONs in results_pod/ (two schemas):
+Reads result JSONs (two schemas):
   - run_validation.py outputs: records have '<cond>_ok', '<cond>_tokens',
     'full_tokens' (conditions raw/summary/dsocr).
   - eval_softtoken.py outputs: records have 'ok', 'tokens', 'soft_tokens'.
@@ -11,13 +11,15 @@ Each (file, condition) becomes one point (mean compression ratio, accuracy).
 Points are grouped into method curves and plotted.
 
 Usage:
-    python plot_pareto.py --results_dir results_pod --out pareto_longmemeval.png
+    python plot_pareto.py
 """
 import argparse
 import glob
 import json
 import os
 from collections import defaultdict
+
+ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
 def point_from_runval(path, cond):
@@ -50,9 +52,10 @@ def point_from_softtoken(path):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--results_dir", default="results_pod")
-    ap.add_argument("--out", default="pareto_longmemeval.png")
-    ap.add_argument("--glob", default="results_lme_*.json")
+    ap.add_argument("--results_dir", default=os.environ.get(
+        "VTC_RESULTS_DIR", os.path.join(ROOT, "results")))
+    ap.add_argument("--out", default=os.path.join(ROOT, "pareto_longmemeval.png"))
+    ap.add_argument("--glob", default="results_*.json")
     args = ap.parse_args()
 
     files = sorted(glob.glob(os.path.join(args.results_dir, args.glob)))

@@ -1,6 +1,0 @@
-{
-    "inputs": {
-        "run_name": "dsocr_debug3",
-        "sweep_cmd": "L=/shared/public/sharing/vtc_memory/results/debug3.log; /shared/public/sharing/vtc_memory/dsocr_env/bin/python -u run_dsocr_reconstruct.py --dataset longmemeval --data_path data/longmemeval_oracle.json --limit 2 --shuffle --seed 0 --mode simple --base_size 1024 --render_size 1024 --font_size 16 --model_path /shared/public/sharing/vtc_memory/DeepSeek-OCR --out /shared/public/sharing/vtc_memory/results/dsocr_cache_debug3.json > $L 2>&1; echo exit=$? >> $L"
-    }
-}

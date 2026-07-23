@@ -12,10 +12,12 @@ For each QA item:
   3. judge correctness (same rules as run_validation), report per-category
      accuracy + achieved compression ratio.
 
-Run on the pod (main env):
-  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
-  python softtoken/eval_softtoken.py --config configs/simple.json \
-      --ckpt softtoken/ckpt_simple_f8.pt --limit 20
+Example:
+  python softtoken/eval_softtoken.py \
+      --ckpt checkpoints/softtoken_simple_f8.pt --limit 20
+
+The compressor architecture is restored from the training arguments embedded
+in the checkpoint. CLI options can override those values for ablations.
 """
 import argparse
 import json
@@ -28,6 +30,12 @@ import torch
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import run_validation as rv
 from softtoken.compressor import SoftTokenCompressor, build_role_segments
+from softtoken.prompting import (
+    SOFT_CONTEXT_MARKER,
+    render_user_prompt,
+    resolve_prompt_format,
+    split_chat_prompt,
+)
 
 
 QA_INSTR_ABSTAIN = ("\n\nAnswer the question using only the conversation above. "
@@ -35,13 +43,8 @@ QA_INSTR_ABSTAIN = ("\n\nAnswer the question using only the conversation above. 
 QA_INSTR_NO_ABSTAIN = ("\n\nAnswer the question using only the conversation above. "
                        "Give a short answer.\nQuestion: ")
 
-# When answering from soft tokens the reader is fed a bare text continuation
-# ([soft ; question] with no chat template), so it runs in transcript-completion
-# mode and frequently keeps decoding past its answer, hallucinating fake
-# follow-up turns ("\nuser: ...\nAnswer: ..."). Those leaked turns are not part
-# of the answer but drag an LLM judge toward "no". We cut the response at the
-# first leaked-turn marker so only the actual answer is scored. This recovers
-# ~0.10-0.12 accuracy on LongMemEval and is the honest decoding boundary.
+# Legacy plain-prompt checkpoints can continue decoding into fake follow-up
+# turns. Keep this boundary for backward-compatible evaluation of those runs.
 LEAK_MARKERS = ("\nuser:", "\nUser:", "\nUSER:", "\nassistant:", "\nAssistant:",
                 "\nAnswer:", "\nQuestion:", "\nQ:", "\nA:", "\nB:")
 
@@ -53,12 +56,30 @@ def strip_leaked_turns(text):
     return text.strip()
 
 
-def generate_from_soft(comp, tok, soft, question, qa_instr, max_new_tokens=64):
-    """soft: (1, M, d). Feed [soft ; question_emb] and greedily decode."""
-    q_ids = tok(qa_instr + question + "\nAnswer:", return_tensors="pt")[
+def _prompt_parts(tok, context, question, qa_instr, prompt_format):
+    if prompt_format == "chat":
+        user_text = context + qa_instr + question
+        if context == SOFT_CONTEXT_MARKER:
+            return split_chat_prompt(tok, user_text)
+        return render_user_prompt(tok, user_text), None
+    suffix = qa_instr + question + "\nAnswer:"
+    return (context + suffix, None) if context != SOFT_CONTEXT_MARKER else ("", suffix)
+
+
+def generate_from_soft(comp, tok, soft, question, qa_instr, prompt_format,
+                       max_new_tokens=64):
+    """Feed chat-prefix embeddings around ``soft`` and greedily decode."""
+    left, right = _prompt_parts(
+        tok, SOFT_CONTEXT_MARKER, question, qa_instr, prompt_format)
+    left_ids = tok(left, add_special_tokens=False, return_tensors="pt")[
         "input_ids"].to(soft.device)
-    q_emb = comp.embed_tokens(q_ids)
-    inp = torch.cat([soft, q_emb], dim=1)
+    right_ids = tok(
+        right, add_special_tokens=(prompt_format == "plain"),
+        return_tensors="pt")[
+        "input_ids"].to(soft.device)
+    left_emb = comp.embed_tokens(left_ids)
+    right_emb = comp.embed_tokens(right_ids)
+    inp = torch.cat([left_emb, soft, right_emb], dim=1)
     attn = torch.ones(inp.shape[:2], dtype=torch.long, device=inp.device)
     eos_ids = [i for i in (tok.eos_token_id,
                            tok.convert_tokens_to_ids("<|im_end|>"))
@@ -74,10 +95,12 @@ def generate_from_soft(comp, tok, soft, question, qa_instr, max_new_tokens=64):
 
 
 def generate_from_full_text(decoder, tok, conversation, question, qa_instr,
-                            max_new_tokens=64):
+                            prompt_format, max_new_tokens=64):
     """Uncompressed readability control: feed full text tokens directly."""
-    prompt = conversation + qa_instr + question + "\nAnswer:"
-    ids = tok(prompt, return_tensors="pt")["input_ids"].cuda()
+    prompt, _ = _prompt_parts(
+        tok, conversation, question, qa_instr, prompt_format)
+    ids = tok(prompt, add_special_tokens=(prompt_format == "plain"),
+              return_tensors="pt")["input_ids"].cuda()
     eos_ids = [i for i in (tok.eos_token_id,
                            tok.convert_tokens_to_ids("<|im_end|>"))
                if isinstance(i, int) and i >= 0]
@@ -90,14 +113,17 @@ def generate_from_full_text(decoder, tok, conversation, question, qa_instr,
     return strip_leaked_turns(text)
 
 
-def judge_simple(tok, comp, question, gold, pred):
+def judge_simple(tok, comp, question, gold, pred, prompt_format):
     ng, np_ = rv.normalize(gold), rv.normalize(pred)
     if ng and (ng == np_ or ng in np_ or np_ in ng):
         return True
     # lightweight judge using the same decoder over text tokens
     msg = (f"Question: {question}\nGold: {gold}\nAnswer: {pred}\n"
            f"Is the answer correct? Reply CORRECT or WRONG.\n")
-    ids = tok(msg, return_tensors="pt")["input_ids"].cuda()
+    if prompt_format == "chat":
+        msg = render_user_prompt(tok, msg)
+    ids = tok(msg, add_special_tokens=(prompt_format == "plain"),
+              return_tensors="pt")["input_ids"].cuda()
     with torch.no_grad():
         out = comp.decoder.generate(input_ids=ids, max_new_tokens=4, do_sample=False)
     verdict = tok.decode(out[0][ids.shape[1]:], skip_special_tokens=True)
@@ -183,14 +209,19 @@ def _iter_eval_items(dataset, raw, normalize_locomo_speakers=False):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--config", default="configs/simple.json")
     ap.add_argument("--ckpt", required=True)
     ap.add_argument("--factor", type=int, default=None,
-                    help="override the config's compression factor (simple mode)")
+                    help="override the checkpoint's compression factor")
     ap.add_argument("--decoder", default=None,
-                    help="override the config's decoder/reader (registry name or path)")
-    ap.add_argument("--dataset", default=None)
-    ap.add_argument("--data", default=None)
+                    help="override the checkpoint's decoder/reader")
+    ap.add_argument("--mode", choices=["simple", "full"], default=None)
+    ap.add_argument("--user_factor", type=int, default=None)
+    ap.add_argument("--assistant_factor", type=int, default=None)
+    ap.add_argument("--enc_layers", type=int, default=None)
+    ap.add_argument("--pool", choices=["mean", "attn", "attn4"], default=None)
+    ap.add_argument("--dataset", default="longmemeval")
+    ap.add_argument("--data", default=os.path.join(
+        rv.DATA_DIR, "longmemeval_oracle.json"))
     ap.add_argument("--limit", type=int, default=20)
     ap.add_argument("--shuffle", action="store_true",
                     help="shuffle before --limit (match run_validation for a "
@@ -210,17 +241,29 @@ def main():
     ap.add_argument("--full_text", action="store_true",
                     help="eval-only readability control: answer from the full "
                          "uncompressed text instead of soft tokens.")
+    ap.add_argument("--skip_judge", action="store_true",
+                    help="only generate predictions; score them later with "
+                         "official_longmemeval_judge.py")
+    ap.add_argument("--prompt_format", choices=["auto", "chat", "plain"],
+                    default="auto",
+                    help="Reader prompt format. auto uses the checkpoint value; "
+                         "checkpoints created before this option remain plain.")
     ap.add_argument("--out", default=None)
     args = ap.parse_args()
 
-    with open(args.config) as f:
-        cfg = json.load(f)
-    dataset = args.dataset or cfg.get("dataset", "locomo")
-    data = args.data or cfg.get("data", "data/locomo10.json")
-    mode = cfg.get("mode", "simple")
+    ck = torch.load(args.ckpt, map_location="cpu")
+    ck_args = ck.get("args", {}) if isinstance(ck, dict) else {}
+    mode = args.mode or ck_args.get("mode", "simple")
+    factor = args.factor or ck_args.get("factor", 8)
+    enc_layers = args.enc_layers or ck_args.get("enc_layers", 2)
+    user_factor = args.user_factor or ck_args.get("user_factor", 4)
+    assistant_factor = args.assistant_factor or ck_args.get("assistant_factor", 16)
+    dataset = args.dataset
+    data = args.data
+    prompt_format = resolve_prompt_format(args.prompt_format, ck_args)
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    path = rv.resolve_model(args.decoder or cfg.get("decoder", "qwen2.5-7b"))
+    path = rv.resolve_model(args.decoder or ck_args.get("decoder", "qwen2.5-7b"))
     print(f"[eval] loading decoder {path}")
     tok = AutoTokenizer.from_pretrained(path)
     decoder = AutoModelForCausalLM.from_pretrained(
@@ -229,33 +272,32 @@ def main():
     # Match the encoder config to how the checkpoint was trained: if the ckpt
     # has no saved encoder layers it was trained with train_encoder=False (the
     # long-context recipe), so the borrowed layers must stay in bf16 to match.
-    import torch as _torch
-    _ck = _torch.load(args.ckpt, map_location="cpu")
-    _ck_args = _ck.get("args", {}) if isinstance(_ck, dict) else {}
-    train_encoder = "enc_layers" in _ck if isinstance(_ck, dict) else True
-    if isinstance(_ck_args, dict) and "train_encoder" in _ck_args:
-        train_encoder = bool(_ck_args["train_encoder"])
+    train_encoder = "enc_layers" in ck if isinstance(ck, dict) else True
+    if isinstance(ck_args, dict) and "train_encoder" in ck_args:
+        train_encoder = bool(ck_args["train_encoder"])
     # Reconstruct the token pooling used at training. If the ckpt was trained
     # with attention pooling it carries pool_key/pool_query; the compressor must
     # be built with pool_mode="attn" or load_trained silently drops them and
     # eval falls back to mean pooling (wrong, degraded results).
-    pool_mode = _ck_args.get("pool") if isinstance(_ck_args, dict) else None
+    pool_mode = args.pool or (ck_args.get("pool") if isinstance(ck_args, dict)
+                              else None)
     if not pool_mode:
-        pool_mode = "attn" if (isinstance(_ck, dict) and "pool_key" in _ck) \
-            else cfg.get("pool", "mean")
-    del _ck
+        pool_mode = "attn4" if (isinstance(ck, dict) and "pool_keys" in ck) \
+            else "attn" if (isinstance(ck, dict) and "pool_key" in ck) \
+            else "mean"
+    del ck
 
     comp = SoftTokenCompressor(
-        decoder, factor=args.factor or cfg.get("factor", 8),
-        enc_layers=cfg.get("enc_layers", 2), train_encoder=train_encoder,
+        decoder, factor=factor,
+        enc_layers=enc_layers, train_encoder=train_encoder,
         mode=mode,
-        role_factors={"user": cfg.get("user_factor", 4),
-                      "assistant": cfg.get("assistant_factor", 16)},
+        role_factors={"user": user_factor, "assistant": assistant_factor},
         pool_mode=pool_mode).cuda()
     comp.load_trained(args.ckpt)
     comp.eval()
     print(f"[eval] loaded ckpt {args.ckpt} (mode={mode}, "
-          f"pool={pool_mode}, train_encoder={train_encoder})")
+          f"pool={pool_mode}, train_encoder={train_encoder}, "
+          f"prompt_format={prompt_format})")
 
     raw = rv.load_json(data)
     items = list(_iter_eval_items(
@@ -279,7 +321,7 @@ def main():
         if args.full_text:
             n_soft = n_tok
             pred = generate_from_full_text(
-                decoder, tok, conv_text, question, qa_instr)
+                decoder, tok, conv_text, question, qa_instr, prompt_format)
         else:
             # build soft tokens
             with torch.no_grad():
@@ -300,27 +342,47 @@ def main():
                     n_soft = soft.shape[1]
 
             pred = generate_from_soft(
-                comp, tok, soft.to(decoder.dtype), question, qa_instr)
-        ok = judge_simple(tok, comp, question, gold, pred)
-        results[cat].append(ok)
+                comp, tok, soft.to(decoder.dtype), question, qa_instr,
+                prompt_format)
+        ok = None if args.skip_judge else judge_simple(
+            tok, comp, question, gold, pred, prompt_format)
+        if ok is not None:
+            results[cat].append(ok)
         ratios.append(n_tok / max(1, n_soft))
-        records.append({"i": idx, "category": cat, "question": question,
-                        "gold": gold, "pred": pred, "ok": ok,
-                        "tokens": n_tok, "soft_tokens": n_soft})
+        record = {"i": idx, "sample": si, "category": cat, "question": question,
+                  "gold": gold, "pred": pred, "ok": ok,
+                  "tokens": n_tok, "soft_tokens": n_soft}
+        if dataset == "longmemeval":
+            record["question_id"] = raw[si].get("question_id")
+        records.append(record)
         if (idx + 1) % 5 == 0:
             print(f"  ... {idx + 1}/{len(items)}")
 
     print("\n============ SOFTTOKEN RESULTS ============")
+    if args.skip_judge:
+        print("Judging skipped; run official_longmemeval_judge.py on this output.")
     for cat in sorted(results):
         b = results[cat]
         print(f"{cat:<16} {sum(b)/len(b):.3f}  (n={len(b)})")
     allb = [x for v in results.values() for x in v]
-    print(f"{'OVERALL':<16} {sum(allb)/len(allb):.3f}")
+    if allb:
+        print(f"{'OVERALL':<16} {sum(allb)/len(allb):.3f}")
     print(f"mean compression: {sum(ratios)/len(ratios):.2f}x")
 
-    out = args.out or f"results_softtoken_{cfg.get('name','x')}.json"
+    ckpt_name = os.path.splitext(os.path.basename(args.ckpt))[0]
+    out = args.out or os.path.join(
+        os.environ.get("VTC_RESULTS_DIR",
+                       os.path.join(rv.EXPERIMENT_DIR, "results")),
+        f"results_{ckpt_name}.json")
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
     with open(out, "w") as f:
-        json.dump({"config": cfg, "ckpt": args.ckpt, "records": records}, f, indent=2)
+        json.dump({
+            "checkpoint_args": ck_args,
+            "eval_args": vars(args),
+            "resolved_prompt_format": prompt_format,
+            "ckpt": args.ckpt,
+            "records": records,
+        }, f, indent=2)
     print(f"[eval] wrote {out}")
 
 

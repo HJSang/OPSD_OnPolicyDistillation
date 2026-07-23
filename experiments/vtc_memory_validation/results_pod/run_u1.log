@@ -1,6 +1,6 @@
 ### TRAIN full_u1 (lme) ###
 [st] loaded config configs/full_u1.json (name=full_u1_a16, mode=full)
-[st] loading decoder /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[st] loading decoder Qwen/Qwen2.5-7B-Instruct
 [transformers] `torch_dtype` is deprecated! Use `dtype` instead!
 Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<01:15,  4.50it/s]Loading weights:   5%|▌         | 18/339 [00:00<00:04, 67.76it/s]Loading weights:  12%|█▏        | 42/339 [00:00<00:02, 123.78it/s]Loading weights:  19%|█▉        | 66/339 [00:00<00:01, 155.72it/s]Loading weights:  26%|██▌       | 88/339 [00:00<00:01, 174.13it/s]Loading weights:  33%|███▎      | 113/339 [00:00<00:01, 190.23it/s]Loading weights:  40%|████      | 137/339 [00:00<00:01, 198.55it/s]Loading weights:  47%|████▋     | 160/339 [00:00<00:00, 206.54it/s]Loading weights:  54%|█████▍    | 184/339 [00:01<00:00, 205.87it/s]Loading weights:  61%|██████▏   | 208/339 [00:01<00:00, 207.58it/s]Loading weights:  68%|██████▊   | 232/339 [00:01<00:00, 208.00it/s]Loading weights:  76%|███████▌  | 256/339 [00:01<00:00, 208.36it/s]Loading weights:  83%|████████▎ | 280/339 [00:01<00:00, 209.14it/s]Loading weights:  89%|████████▉ | 302/339 [00:01<00:00, 210.52it/s]Loading weights:  96%|█████████▌| 324/339 [00:01<00:00, 202.55it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 185.38it/s]
 [st] trainable params: 478.96M (factor=8, enc_layers=2)
@@ -8,7 +8,7 @@
 [st] got 400 chunks
 [st][full] 2 turns, 256 tokens -> 68 soft tokens (3.8x) with user_factor=1 assistant_factor=16
 [st][full] per-turn encode + decode OK
-/home/jobuser/vtc_memory_validation/softtoken/train.py:189: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+/workspace/experiments/vtc_memory_validation/softtoken/train.py:189: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
 Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:835.)
   f"(ppl {ppl:.1f}) | fkl {float(fkl):.3f}")
   step    0 | recon 1.375 (ppl 4.0) | fkl 17.701
@@ -214,12 +214,12 @@ Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/cs
   step  999 | recon 1.170 (ppl 3.2) | fkl 0.426
 [st] saved trainable head + encoder layers to softtoken/ckpt_full_u1_lme.pt
 ### EVAL full_u1 (lme) ###
-[eval] loading decoder /shared/public/models/Qwen/Qwen2.5-7B-Instruct
+[eval] loading decoder Qwen/Qwen2.5-7B-Instruct
 [transformers] `torch_dtype` is deprecated! Use `dtype` instead!
 Loading weights:   0%|          | 0/339 [00:00<?, ?it/s]Loading weights:   0%|          | 1/339 [00:00<01:14,  4.51it/s]Loading weights:   6%|▌         | 19/339 [00:00<00:04, 73.22it/s]Loading weights:  12%|█▏        | 42/339 [00:00<00:02, 127.01it/s]Loading weights:  19%|█▉        | 66/339 [00:00<00:01, 161.29it/s]Loading weights:  27%|██▋       | 90/339 [00:00<00:01, 183.20it/s]Loading weights:  34%|███▎      | 114/339 [00:00<00:01, 197.09it/s]Loading weights:  41%|████      | 138/339 [00:00<00:00, 206.74it/s]Loading weights:  48%|████▊     | 162/339 [00:00<00:00, 212.92it/s]Loading weights:  55%|█████▍    | 185/339 [00:01<00:00, 213.12it/s]Loading weights:  62%|██████▏   | 210/339 [00:01<00:00, 217.77it/s]Loading weights:  69%|██████▉   | 234/339 [00:01<00:00, 219.55it/s]Loading weights:  76%|███████▌  | 258/339 [00:01<00:00, 219.44it/s]Loading weights:  83%|████████▎ | 282/339 [00:01<00:00, 220.93it/s]Loading weights:  90%|█████████ | 306/339 [00:01<00:00, 220.11it/s]Loading weights:  97%|█████████▋| 330/339 [00:01<00:00, 221.60it/s]Loading weights: 100%|██████████| 339/339 [00:01<00:00, 196.98it/s]
 [eval] loaded ckpt softtoken/ckpt_full_u1_lme.pt (mode=full)
 [eval] 16 QA items
-/home/jobuser/.local/lib/python3.10/site-packages/transformers/generation/utils.py:1115: UserWarning: Passing `repetition_penalty` with `inputs_embeds` and without `input_ids` to `generate` will apply the penalty only to newly generated tokens, not to the prompt.
+/opt/python-env/lib/python3.10/site-packages/transformers/generation/utils.py:1115: UserWarning: Passing `repetition_penalty` with `inputs_embeds` and without `input_ids` to `generate` will apply the penalty only to newly generated tokens, not to the prompt.
   warnings.warn(
 [transformers] The attention mask is not set and cannot be inferred from input because pad token is same as eos token. As a consequence, you may observe unexpected behavior. Please pass your input's `attention_mask` to obtain reliable results.
   ... 5/16

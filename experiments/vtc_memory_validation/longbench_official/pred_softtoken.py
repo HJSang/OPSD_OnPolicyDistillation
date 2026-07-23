@@ -14,10 +14,17 @@ import torch
 from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parents[1]
+LONGBENCH_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 import run_validation as rv
 from softtoken.compressor import SoftTokenCompressor
+from softtoken.prompting import (
+    SOFT_CONTEXT_MARKER,
+    render_user_prompt,
+    resolve_prompt_format,
+    split_chat_prompt,
+)
 
 QA_DATASETS = [
     "narrativeqa",
@@ -64,7 +71,7 @@ def load_softtoken(args, decoder):
     comp.eval()
     print(f"[lb-soft] loaded {args.softtoken_ckpt} "
           f"(factor={args.factor}, pool={pool_mode}, train_encoder={train_encoder})")
-    return comp
+    return comp, ck_args
 
 
 def split_prompt(template, row):
@@ -77,8 +84,12 @@ def split_prompt(template, row):
     return left, right
 
 
-def generate_text(decoder, tok, prompt, max_new_tokens):
-    ids = tok(prompt, truncation=False, return_tensors="pt").input_ids.to(decoder.device)
+def generate_text(decoder, tok, prompt, max_new_tokens, prompt_format):
+    if prompt_format == "chat":
+        prompt = render_user_prompt(tok, prompt)
+    ids = tok(prompt, add_special_tokens=(prompt_format == "plain"),
+              truncation=False,
+              return_tensors="pt").input_ids.to(decoder.device)
     context_length = ids.shape[-1]
     with torch.no_grad():
         out = decoder.generate(
@@ -92,7 +103,8 @@ def generate_text(decoder, tok, prompt, max_new_tokens):
     return tok.decode(out[context_length:], skip_special_tokens=True).strip()
 
 
-def generate_soft(decoder, tok, comp, left, context, right, max_new_tokens, enc_window):
+def generate_soft(decoder, tok, comp, left, context, right, max_new_tokens,
+                  enc_window, prompt_format):
     ctx_ids = tok(context, add_special_tokens=False, return_tensors="pt").input_ids.cuda()
     mask = torch.ones_like(ctx_ids)
     with torch.no_grad():
@@ -100,8 +112,13 @@ def generate_soft(decoder, tok, comp, left, context, right, max_new_tokens, enc_
             soft = comp.encode_long(ctx_ids, mask, window=enc_window)
         else:
             soft = comp.encode(ctx_ids, mask)
-        left_ids = tok(left, add_special_tokens=False, return_tensors="pt").input_ids.cuda()
-        right_ids = tok(right, add_special_tokens=False, return_tensors="pt").input_ids.cuda()
+        if prompt_format == "chat":
+            left, right = split_chat_prompt(
+                tok, left + SOFT_CONTEXT_MARKER + right)
+        left_ids = tok(left, add_special_tokens=False,
+                       return_tensors="pt").input_ids.cuda()
+        right_ids = tok(right, add_special_tokens=False,
+                        return_tensors="pt").input_ids.cuda()
         left_emb = decoder.model.embed_tokens(left_ids).to(decoder.dtype)
         right_emb = decoder.model.embed_tokens(right_ids).to(decoder.dtype)
         prefix_len = left_emb.shape[1] + soft.shape[1] + right_emb.shape[1]
@@ -130,8 +147,8 @@ def generate_soft(decoder, tok, comp, left, context, right, max_new_tokens, enc_
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--datasets", default=",".join(QA_DATASETS))
-    ap.add_argument("--data_dir", default="longbench_official/data")
-    ap.add_argument("--official_dir", default="longbench_official/official_eval")
+    ap.add_argument("--data_dir", default=str(LONGBENCH_ROOT / "data"))
+    ap.add_argument("--official_dir", default=str(LONGBENCH_ROOT / "official_eval"))
     ap.add_argument("--condition", choices=["raw", "softtoken"], default="softtoken")
     ap.add_argument("--run_name", required=True)
     ap.add_argument("--decoder", default="qwen3-8b")
@@ -139,6 +156,10 @@ def main():
     ap.add_argument("--factor", type=int, default=8)
     ap.add_argument("--enc_layers", type=int, default=2)
     ap.add_argument("--enc_window", type=int, default=512)
+    ap.add_argument("--prompt_format", choices=["auto", "chat", "plain"],
+                    default="auto",
+                    help="auto uses the soft-token checkpoint value and defaults "
+                         "to chat for raw runs.")
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--out_root", default=None,
                     help="Defaults to <official_dir>/pred/<run_name>.")
@@ -154,12 +175,18 @@ def main():
     tok = AutoTokenizer.from_pretrained(model_path)
     decoder = AutoModelForCausalLM.from_pretrained(
         model_path, torch_dtype=torch.bfloat16, device_map="cuda").eval()
-    comp = load_softtoken(args, decoder) if args.condition == "softtoken" else None
+    if args.condition == "softtoken":
+        comp, ck_args = load_softtoken(args, decoder)
+    else:
+        comp, ck_args = None, None
+    prompt_format = resolve_prompt_format(args.prompt_format, ck_args)
+    print(f"[lb-soft] reader prompt format: {prompt_format}")
 
     out_root = Path(args.out_root) if args.out_root else official_dir / "pred" / args.run_name
     out_root.mkdir(parents=True, exist_ok=True)
     meta = {"condition": args.condition, "decoder": args.decoder,
             "softtoken_ckpt": args.softtoken_ckpt, "factor": args.factor,
+            "resolved_prompt_format": prompt_format,
             "datasets": [], "records": {}}
 
     for dataset in [d.strip() for d in args.datasets.split(",") if d.strip()]:
@@ -175,12 +202,13 @@ def main():
                 max_new = int(maxlens[dataset])
                 if args.condition == "raw":
                     prompt = template.format(context=row["context"], input=row["input"])
-                    pred = generate_text(decoder, tok, prompt, max_new)
+                    pred = generate_text(
+                        decoder, tok, prompt, max_new, prompt_format)
                 else:
                     left, right = split_prompt(template, row)
                     pred, raw_tokens, soft_tokens = generate_soft(
                         decoder, tok, comp, left, row["context"], right,
-                        max_new, args.enc_window)
+                        max_new, args.enc_window, prompt_format)
                     ratios.append(raw_tokens / max(1, soft_tokens))
                 f.write(json.dumps({
                     "pred": pred,

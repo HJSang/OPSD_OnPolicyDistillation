@@ -18,9 +18,11 @@ import torch
 from tqdm import tqdm
 
 ROOT = Path(__file__).resolve().parents[1]
+LONGBENCH_ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
 import run_validation as rv
+from softtoken.prompting import render_user_prompt
 
 QA_DATASETS = [
     "narrativeqa",
@@ -155,8 +157,12 @@ def build_ocr_cache(args):
         torch.cuda.empty_cache()
 
 
-def generate_text(decoder, tok, prompt, max_new_tokens):
-    ids = tok(prompt, truncation=False, return_tensors="pt").input_ids.to(decoder.device)
+def generate_text(decoder, tok, prompt, max_new_tokens, prompt_format):
+    if prompt_format == "chat":
+        prompt = render_user_prompt(tok, prompt)
+    ids = tok(prompt, add_special_tokens=(prompt_format == "plain"),
+              truncation=False,
+              return_tensors="pt").input_ids.to(decoder.device)
     context_length = ids.shape[-1]
     with torch.no_grad():
         out = decoder.generate(
@@ -186,7 +192,8 @@ def write_predictions(args):
     out_root = Path(args.out_root) if args.out_root else official_dir / "pred" / args.run_name
     out_root.mkdir(parents=True, exist_ok=True)
     meta = {"condition": "dsocr", "decoder": args.decoder,
-            "cache": args.cache, "datasets": [], "records": {}}
+            "cache": args.cache, "prompt_format": args.prompt_format,
+            "datasets": [], "records": {}}
 
     rows_by_dataset = {}
     for dataset, idx, row in selected_rows(args):
@@ -202,7 +209,9 @@ def write_predictions(args):
                 cached = cache[key]
                 prompt = prompts[dataset].format(
                     context=cached["reconstructed"], input=row["input"])
-                pred = generate_text(decoder, tok, prompt, int(maxlens[dataset]))
+                pred = generate_text(
+                    decoder, tok, prompt, int(maxlens[dataset]),
+                    args.prompt_format)
                 raw_tokens = len(tok(row["context"], add_special_tokens=False).input_ids)
                 ratios.append(raw_tokens / max(1, cached.get("vision_tokens", 0)))
                 f.write(json.dumps({
@@ -228,18 +237,20 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--stage", choices=["cache", "pred", "both"], default="both")
     ap.add_argument("--datasets", default=",".join(QA_DATASETS))
-    ap.add_argument("--data_dir", default="longbench_official/data")
-    ap.add_argument("--official_dir", default="longbench_official/official_eval")
+    ap.add_argument("--data_dir", default=str(LONGBENCH_ROOT / "data"))
+    ap.add_argument("--official_dir", default=str(LONGBENCH_ROOT / "official_eval"))
     ap.add_argument("--run_name", required=True)
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--cache", required=True)
     ap.add_argument("--out_root", default=None)
 
     ap.add_argument("--decoder", default="qwen3-8b")
+    ap.add_argument("--prompt_format", choices=["chat", "plain"], default="chat",
+                    help="Reader prompt format. plain reproduces legacy runs.")
     ap.add_argument("--dsocr_model_path",
                     default=os.environ.get(
-                        "VTC_DEEPSEEK_OCR",
-                        "/shared/public/sharing/vtc_memory/DeepSeek-OCR"))
+                        "VTC_MODEL_DEEPSEEK_OCR",
+                        rv.resolve_model("deepseek-ocr")))
     ap.add_argument("--font_size", type=int, default=18)
     ap.add_argument("--base_size", type=int, default=640)
     ap.add_argument("--image_size", type=int, default=None)

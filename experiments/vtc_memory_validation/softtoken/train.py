@@ -12,8 +12,7 @@ This prototype trains on short text chunks (single block, no session chunking)
 just to prove "compress -> inject -> reconstruct" works end to end and the loss
 goes down. Scale up later.
 
-Run on the pod (main env, transformers 5.x):
-  export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1
+Example:
   python softtoken/train.py --decoder qwen2.5-7b --factor 8 --steps 200 \
       --data data/locomo10.json --dataset locomo --smoke
 """
@@ -22,12 +21,19 @@ import json
 import os
 import sys
 
+# Required by deterministic CUDA matrix multiplications.
+os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
+
 import torch
 import torch.nn.functional as F
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import run_validation as rv  # resolve_model, data loaders
 from softtoken.compressor import SoftTokenCompressor
+from softtoken.prompting import (
+    SOFT_CONTEXT_MARKER,
+    split_chat_prompt,
+)
 
 
 def _iter_text_items(dataset_name, data):
@@ -52,7 +58,7 @@ def _iter_text_items(dataset_name, data):
 
 
 def make_long_examples(dataset_name, data_path, tokenizer, max_mem_tokens,
-                       target_len, n_examples, min_mem_tokens=512):
+                       target_len, n_examples, min_mem_tokens=512, seed=0):
     """Build (context_ids, target_ids) pairs for long-context training.
 
     Each example compresses a long context span (up to `max_mem_tokens`, so the
@@ -74,7 +80,7 @@ def make_long_examples(dataset_name, data_path, tokenizer, max_mem_tokens,
     length. Returns a list of (context_ids[1,N], target_ids[1,T]) tensor pairs.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(seed)
     data = rv.load_json(data_path)
     items = list(_iter_text_items(dataset_name, data))
     # pre-tokenize every conversation once
@@ -192,7 +198,8 @@ def _first_conversation_turns(dataset_name, raw):
 
 
 def _save_ckpt(args, comp):
-    os.makedirs(os.path.dirname(args.save), exist_ok=True)
+    save_dir = os.path.dirname(os.path.abspath(args.save))
+    os.makedirs(save_dir, exist_ok=True)
     ckpt = {"adapter": comp.adapter.state_dict(),
             "gate": comp.gate.state_dict(),
             "args": vars(args)}
@@ -220,12 +227,13 @@ def _run_long_context_training(args, comp, decoder, tok, opt):
     degenerating on LoCoMo-length inputs.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     print(f"[st][long] building long-context examples up to "
           f"{args.max_mem_tokens} ctx tokens (target {args.target_len})")
     examples = make_long_examples(
         args.dataset, args.data, tok, args.max_mem_tokens, args.target_len,
-        n_examples=args.n_chunks, min_mem_tokens=args.min_mem_tokens)
+        n_examples=args.n_chunks, min_mem_tokens=args.min_mem_tokens,
+        seed=args.seed)
     print(f"[st][long] got {len(examples)} examples")
     if not examples:
         raise RuntimeError("no long-context examples built; check data/lengths")
@@ -317,8 +325,9 @@ def _load_qa_items(path):
     return items
 
 
-def _answer_ids(tok, answer):
-    ids = tok(" " + answer, return_tensors="pt",
+def _answer_ids(tok, answer, prompt_format):
+    text = answer if prompt_format == "chat" else " " + answer
+    ids = tok(text, return_tensors="pt",
               add_special_tokens=False)["input_ids"]
     if tok.eos_token_id is not None:
         eos = torch.tensor([[tok.eos_token_id]], dtype=ids.dtype)
@@ -326,21 +335,35 @@ def _answer_ids(tok, answer):
     return ids.cuda()
 
 
+def _qa_prompt_ids(tok, qa_instr, question, prompt_format):
+    if prompt_format == "chat":
+        left, right = split_chat_prompt(
+            tok, SOFT_CONTEXT_MARKER + qa_instr + question)
+    else:
+        left, right = "", qa_instr + question + "\nAnswer:"
+    left_ids = tok(left, return_tensors="pt",
+                   add_special_tokens=False)["input_ids"].cuda()
+    right_ids = tok(right, return_tensors="pt",
+                    add_special_tokens=False)["input_ids"].cuda()
+    return left_ids, right_ids
+
+
 def _qa_answer_loss(comp, decoder, tok, passage, question, answer, max_len,
-                    qa_instr=QA_INSTR):
+                    qa_instr=QA_INSTR, prompt_format="chat"):
     """Compress `passage`, feed [soft; question; answer], return CE on answer
     tokens only. Shared by pure-QA and QA+reconstruction training."""
     p_ids = tok(passage, return_tensors="pt",
                 truncation=True, max_length=max_len)["input_ids"].cuda()
-    q_ids = tok(qa_instr + question + "\nAnswer:",
-                return_tensors="pt", add_special_tokens=False)["input_ids"].cuda()
-    a_ids = _answer_ids(tok, answer)
+    left_ids, right_ids = _qa_prompt_ids(
+        tok, qa_instr, question, prompt_format)
+    a_ids = _answer_ids(tok, answer, prompt_format)
     soft = comp.encode(p_ids, torch.ones_like(p_ids))
     if isinstance(soft, list):
         soft = soft[0].unsqueeze(0)
-    q_emb = comp.embed_tokens(q_ids).to(soft.dtype)
+    left_emb = comp.embed_tokens(left_ids).to(soft.dtype)
+    right_emb = comp.embed_tokens(right_ids).to(soft.dtype)
     a_emb = comp.embed_tokens(a_ids).to(soft.dtype)
-    inp = torch.cat([soft, q_emb, a_emb], dim=1)
+    inp = torch.cat([left_emb, soft, right_emb, a_emb], dim=1)
     attn = torch.ones(inp.shape[:2], dtype=torch.long, device=inp.device)
     logits = decoder(inputs_embeds=inp, attention_mask=attn).logits
     A = a_ids.shape[1]
@@ -385,7 +408,7 @@ def _run_qa_recon_training(args, comp, decoder, tok, opt):
     in the conversational domain that matches LoCoMo while QA teaches extraction.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     qa_items = _load_qa_items(args.data)
     qa_instr = _qa_instr(args)
     print(f"[st][qa+recon] loaded {len(qa_items)} QA triples from {args.data}")
@@ -409,7 +432,8 @@ def _run_qa_recon_training(args, comp, decoder, tok, opt):
             # QA on a passage-QA triple
             p, q, a = qa_items[rng.randrange(nqa)]
             qa, M = _qa_answer_loss(
-                comp, decoder, tok, p, q, a, args.max_len, qa_instr)
+                comp, decoder, tok, p, q, a, args.max_len, qa_instr,
+                args.prompt_format)
             qa = qa / accum
             loss = rc + args.qa_weight * qa
             if torch.isfinite(loss):
@@ -523,7 +547,7 @@ def _run_mix_manifest_training(args, comp, decoder, tok, opt):
     reconstruction example plus one QA example every step.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     streams = _load_mix_streams(args, tok)
     qa_instr = _qa_instr(args)
     weights = [s["weight"] for s in streams]
@@ -547,7 +571,8 @@ def _run_mix_manifest_training(args, comp, decoder, tok, opt):
             else:
                 p, q, a = s["items"][rng.randrange(len(s["items"]))]
                 loss, _ = _qa_answer_loss(
-                    comp, decoder, tok, p, q, a, args.max_len, qa_instr)
+                    comp, decoder, tok, p, q, a, args.max_len, qa_instr,
+                    args.prompt_format)
                 loss = args.qa_weight * loss
                 qa_sum += float(loss.detach()) / max(args.qa_weight, 1e-12)
                 qa_n += 1
@@ -580,7 +605,7 @@ def _run_qa_training(args, comp, decoder, tok, opt):
     -> answer) far better than autoencoding.
     """
     import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     items = _load_qa_items(args.data)
     qa_instr = _qa_instr(args)
     print(f"[st][qa] loaded {len(items)} (passage, q, a) triples")
@@ -599,16 +624,17 @@ def _run_qa_training(args, comp, decoder, tok, opt):
             passage, question, answer = items[rng.randrange(n)]
             p_ids = tok(passage, return_tensors="pt",
                         truncation=True, max_length=args.max_len)["input_ids"].cuda()
-            q_ids = tok(qa_instr + question + "\nAnswer:",
-                        return_tensors="pt", add_special_tokens=False)["input_ids"].cuda()
-            a_ids = _answer_ids(tok, answer)
+            left_ids, right_ids = _qa_prompt_ids(
+                tok, qa_instr, question, args.prompt_format)
+            a_ids = _answer_ids(tok, answer, args.prompt_format)
 
             soft = comp.encode(p_ids, torch.ones_like(p_ids))       # (1, M, d)
             if isinstance(soft, list):
                 soft = soft[0].unsqueeze(0)
-            q_emb = comp.embed_tokens(q_ids).to(soft.dtype)
+            left_emb = comp.embed_tokens(left_ids).to(soft.dtype)
+            right_emb = comp.embed_tokens(right_ids).to(soft.dtype)
             a_emb = comp.embed_tokens(a_ids).to(soft.dtype)
-            inp = torch.cat([soft, q_emb, a_emb], dim=1)            # (1, M+Q+A, d)
+            inp = torch.cat([left_emb, soft, right_emb, a_emb], dim=1)
             attn = torch.ones(inp.shape[:2], dtype=torch.long, device=inp.device)
             out = decoder(inputs_embeds=inp, attention_mask=attn)
             logits = out.logits                                     # (1, L, V)
@@ -642,7 +668,7 @@ def main():
     ap.add_argument("--decoder", default="qwen2.5-7b")
     ap.add_argument("--dataset", default="locomo",
                     choices=["locomo", "longmemeval", "ultrachat", "synthlocomo", "msc_lme"])
-    ap.add_argument("--data", default="data/locomo10.json")
+    ap.add_argument("--data", default=os.path.join(rv.DATA_DIR, "locomo10.json"))
     ap.add_argument("--factor", type=int, default=8)
     ap.add_argument("--mode", default="simple", choices=["simple", "full"],
                     help="simple=uniform pooling; full=per-turn pooling with "
@@ -670,6 +696,9 @@ def main():
     ap.add_argument("--no_abstain", action="store_true",
                     help="[qa_train/qa_recon/mix_manifest] train with an "
                          "answerable-only QA prompt instead of NOT MENTIONED.")
+    ap.add_argument("--prompt_format", choices=["chat", "plain"], default="chat",
+                    help="Reader-facing QA prompt format. plain reproduces "
+                         "checkpoints created before chat-template support.")
     ap.add_argument("--qa_accum", type=int, default=8,
                     help="[qa_train] gradient-accumulation micro-batch size to "
                          "reduce single-example answer-CE variance.")
@@ -680,7 +709,8 @@ def main():
                     help="Manifest with weighted recon/QA streams. When set, "
                          "training samples streams by manifest weights instead "
                          "of using only --data/--recon_data.")
-    ap.add_argument("--recon_data", default="data/ultrachat_train.json",
+    ap.add_argument("--recon_data", default=os.path.join(
+        rv.DATA_DIR, "ultrachat_train.json"),
                     help="[qa_recon] dialogue corpus for the reconstruction term.")
     ap.add_argument("--qa_weight", type=float, default=1.0,
                     help="[qa_recon] weight on the QA term relative to recon.")
@@ -704,12 +734,13 @@ def main():
     ap.add_argument("--lr", type=float, default=1e-4)
     ap.add_argument("--fkl_weight", type=float, default=0.0,
                     help="weight on forward-KL to full-text next-token dist")
-    ap.add_argument("--config", default=None,
-                    help="JSON config (configs/simple.json or configs/full.json) "
-                         "whose keys set defaults for the args below; explicit "
-                         "CLI flags still override.")
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--non_deterministic", action="store_true",
+                    help="allow nondeterministic CUDA kernels (faster, but "
+                         "identical runs may produce different checkpoints)")
     ap.add_argument("--smoke", action="store_true", help="tiny run to verify")
-    ap.add_argument("--save", default="softtoken/ckpt.pt")
+    ap.add_argument("--save", default=os.path.join(
+        rv.EXPERIMENT_DIR, "checkpoints", "softtoken.pt"))
     ap.add_argument("--init_ckpt", default=None,
                     help="warm-start the compressor from a previous checkpoint "
                          "before training (true two-stage training: e.g. stage 1 "
@@ -719,30 +750,23 @@ def main():
                          "comp.load_trained; the optimizer restarts fresh.")
     args = ap.parse_args()
 
-    # apply config file (skip _comment / name); CLI-provided flags win
-    if args.config:
-        with open(args.config) as f:
-            cfg = json.load(f)
-        provided = {a.split("=")[0].lstrip("-").replace("-", "_")
-                    for a in sys.argv[1:] if a.startswith("--")}
-        for k, v in cfg.items():
-            if k in ("_comment", "name"):
-                continue
-            if hasattr(args, k) and k not in provided:
-                setattr(args, k, v)
-        print(f"[st] loaded config {args.config} "
-              f"(name={cfg.get('name', '?')}, mode={args.mode})")
+    import random
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)
+    if not args.non_deterministic:
+        torch.use_deterministic_algorithms(True)
+        torch.backends.cudnn.benchmark = False
 
     if args.smoke:
         args.steps, args.n_chunks, args.max_len = 20, 8, 128
 
     from transformers import AutoModelForCausalLM, AutoTokenizer
     path = rv.resolve_model(args.decoder)
-    if os.path.sep in path and not os.path.exists(path):
+    if os.path.isabs(path) and not os.path.exists(path):
         raise FileNotFoundError(
             f"Resolved decoder '{args.decoder}' to '{path}', but that path does "
-            "not exist. Run on the GPU pod with mounted /shared models, set "
-            "VTC_MODELS_ROOT/VTC_ELR_MODELS_ROOT, or pass a local model path.")
+            "not exist. Pass a valid local path or a Hugging Face model ID.")
     print(f"[st] loading decoder {path}")
     tok = AutoTokenizer.from_pretrained(path)
     decoder = AutoModelForCausalLM.from_pretrained(
@@ -812,8 +836,7 @@ def main():
         _ = comp.forward_with_soft_list(soft_list, ids[:, :args.max_len // 2])
         print("[st][full] per-turn encode + decode OK")
 
-    import random
-    rng = random.Random(0)
+    rng = random.Random(args.seed)
     comp.train()
     n_ch = len(chunks)
     for step in range(args.steps):

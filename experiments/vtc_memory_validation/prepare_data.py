@@ -7,7 +7,7 @@ Download the benchmarks used by the VTC-vs-text conversational-memory validation
                     data/longmemeval_s_cleaned.json      (277 MB, optional, full haystack)
     UltraChat    -> data/ultrachat_train.json            (2,000-conversation train_sft subset by default)
 
-Run on the GPU pod (net access required):
+Run in any environment with network access:
     python prepare_data.py                 # LoCoMo + LongMemEval oracle + UltraChat subset
     python prepare_data.py --with_s        # also the 277 MB _s file
 """
@@ -29,6 +29,8 @@ BUNDLED_ULTRACHAT = os.path.join(
     "longmemeval_evaluation_training_data",
     "ultrachat_train.json",
 )
+DEFAULT_DATA_DIR = os.environ.get(
+    "VTC_DATA_DIR", os.path.join(os.path.dirname(os.path.abspath(__file__)), "data"))
 
 
 def download(url, dest):
@@ -136,7 +138,7 @@ def stage_files(data_dir, stage_dir):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--data_dir", default="data")
+    ap.add_argument("--data_dir", default=DEFAULT_DATA_DIR)
     ap.add_argument("--with_s", action="store_true",
                     help="also download the 277 MB longmemeval_s_cleaned.json")
     ap.add_argument("--skip_ultrachat", action="store_true",
@@ -149,8 +151,7 @@ def main():
     ap.add_argument("--ultrachat_seed", type=int, default=0)
     ap.add_argument("--ultrachat_shuffle_buffer", type=int, default=10000)
     ap.add_argument("--stage_dir", default=None,
-                    help="optional NFS staging directory for batch sweeps, e.g. "
-                         "/shared/public/sharing/vtc_memory/data")
+                    help="optional second directory to copy prepared data into")
     args = ap.parse_args()
 
     os.makedirs(args.data_dir, exist_ok=True)
