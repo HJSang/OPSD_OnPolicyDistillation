@@ -31,10 +31,9 @@ This repository is related to the following papers:
   continuous soft tokens that a frozen decoder reads directly, rather than
   distilling behavior between a teacher and a student — an orthogonal
   compression axis (representation of context) to OPD's compression axis
-  (which tokens carry learning signal during distillation). Also mirrored at
-  [`xuyd16ai/context_softtoken_compress`](https://github.com/xuyd16ai/context_softtoken_compress)
-  (the arXiv PDF's original code link) and, as a legacy snapshot, on this
-  repo's [`latentpress-context-compression`](https://github.com/HJSang/OPSD_OnPolicyDistillation/tree/latentpress-context-compression)
+  (which tokens carry learning signal during distillation). Also present, as
+  a legacy snapshot, on this repo's
+  [`latentpress-context-compression`](https://github.com/HJSang/OPSD_OnPolicyDistillation/tree/latentpress-context-compression)
   branch.
 
 ## OPD: On-Policy Distillation with Separate Teacher
