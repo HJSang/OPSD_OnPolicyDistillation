@@ -19,7 +19,21 @@ This repository is related to the following papers:
   - Use RL on a strong teacher model to explore high-reward reasoning behaviors.
   - Distill the RL-trained teacher into a smaller student with dense token-level supervision (FKL-OPD two-stage pipeline).
   - This teacher-RL + distillation setup outperforms directly training small models with GRPO/RL.
-  - 
+
+## Related Repositories
+
+- [`thunlp/OPD`](https://github.com/thunlp/OPD) — the base on-policy-distillation
+  framework that TIP extends.
+- [`xuyd16ai/context_softtoken_compress`](https://github.com/xuyd16ai/context_softtoken_compress)
+  ([`latentpress-context-compression` branch](https://github.com/HJSang/OPSD_OnPolicyDistillation/tree/latentpress-context-compression)
+  of this repo) — **LatentPress: Context Compression Beyond Text and Vision**
+  ([arXiv:2609.01507](https://arxiv.org/abs/2609.01507)), a separate research
+  line by one of this repo's authors. LatentPress writes long context into
+  continuous soft tokens that a frozen decoder reads directly, rather than
+  distilling behavior between a teacher and a student — an orthogonal
+  compression axis (representation of context) to OPD's compression axis
+  (which tokens carry learning signal during distillation).
+
 ## OPD: On-Policy Distillation with Separate Teacher
 
 A separate (typically bigger) teacher model and a trainable student model see the same input sequences. The teacher produces better distributions naturally; no ground-truth injection is needed.
