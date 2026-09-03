@@ -1,29 +1,150 @@
 # Memory Efficient On-Policy Distillation Training
 
-Minimal training repo for on-policy distillation experiments built on top of `verl`.
+<p align="left">
+  <a href="https://arxiv.org/abs/2604.14084"><img src="https://img.shields.io/badge/TIP-arXiv%202604.14084-b31b1b.svg" alt="TIP arXiv"></a>
+  <a href="https://arxiv.org/abs/2603.11178"><img src="https://img.shields.io/badge/PACED-arXiv%202603.11178-b31b1b.svg" alt="PACED arXiv"></a>
+  <a href="https://arxiv.org/abs/2605.12483"><img src="https://img.shields.io/badge/Sparse--to--Dense-arXiv%202605.12483-b31b1b.svg" alt="Sparse-to-Dense arXiv"></a>
+  <a href="https://github.com/HJSang/OPSD_OnPolicyDistillation"><img src="https://img.shields.io/badge/GitHub-HJSang%2FOPSD__OnPolicyDistillation-181717.svg?logo=github" alt="GitHub"></a>
+</p>
 
-## Papers
+Minimal training repo for on-policy distillation (OPD) experiments built on
+top of `verl`. It is the shared training base for three papers on token-,
+problem-, and reward-level efficiency in OPD — see **Papers & Results**
+below for what each one measures and how to cite it.
 
-This repository is related to the following papers:
+## Papers & Results
 
-- [TIP: Token Importance in On-Policy Distillation](https://arxiv.org/abs/2604.14084) ([PDF](https://arxiv.org/pdf/2604.14084))
-  - Studies which token positions carry the most useful learning signal in OPD.
-  - Introduces the TIP view of token importance based on student entropy and teacher-student divergence.
+### TIP: Token Importance in On-Policy Distillation
 
-- [PACED: Distillation and On-Policy Self-Distillation at the Frontier of Student Competence](https://arxiv.org/abs/2603.11178) ([PDF](https://arxiv.org/pdf/2603.11178))
-  - Studies sample importance for distillation and self-distillation at the problem level.
-  - Proposes weighting problems by student empirical pass rate, emphasizing the frontier of student competence.
-  - A two-stage forward-then-reverse KL schedule leads to the best performance.
+[arXiv:2604.14084](https://arxiv.org/abs/2604.14084) · [PDF](https://arxiv.org/pdf/2604.14084)
+— Yuanda Xu\*, Hejian Sang\*, Zhengze Zhou\*, Ran He\*, Zhipeng Wang, Alborz Geramifard
 
-- [Beyond GRPO and On-Policy Distillation: An Empirical Sparse-to-Dense Reward Principle for Language-Model Post-Training](https://arxiv.org/abs/2605.12483) ([PDF](https://arxiv.org/pdf/2605.12483))
-  - Use RL on a strong teacher model to explore high-reward reasoning behaviors.
-  - Distill the RL-trained teacher into a smaller student with dense token-level supervision (FKL-OPD two-stage pipeline).
-  - This teacher-RL + distillation setup outperforms directly training small models with GRPO/RL.
+Not all token positions in a rollout carry equally useful learning signal.
+TIP shows informative tokens live in two regions — high student entropy, and
+low entropy with high teacher–student divergence (overconfident-and-wrong) —
+and combines both into a Soft-OR selection score. Entropy-based retention of
+50% of tokens matches or exceeds full-token training while cutting peak
+training memory by up to 47%; isolating the low-entropy/high-divergence
+region alone, training on under 10% of tokens nearly matches full-token
+baselines.
+
+**Main results** (accuracy %, mean@16 ± std; `Soft-OR` combines entropy and divergence):
+
+| Model pair | Benchmark | Baseline 100% | Entropy-only 50% | Entropy-only 20% | Soft-OR 50% | Soft-OR 20% |
+|---|---|---:|---:|---:|---:|---:|
+| Qwen3-8B → 4B | MATH-500 | 76.7 ± 0.7 | 78.6 ± 0.6 | 74.1 ± 0.9 | **79.1 ± 0.8** | 77.6 ± 0.7 |
+| Qwen3-8B → 4B | AIME'24 | 21.9 ± 1.2 | 23.8 ± 1.3 | 22.5 ± 1.1 | **25.7 ± 1.4** | 24.5 ± 1.2 |
+| Qwen3-8B → 4B | AIME'25 | 19.4 ± 1.1 | 20.7 ± 1.3 | 21.5 ± 1.2 | 21.9 ± 1.2 | **23.2 ± 1.2** |
+| Llama-70B → 8B | MATH-500 | 71.0 ± 0.7 | 74.0 ± 0.8 | 73.6 ± 0.7 | **74.7 ± 1.0** | 74.2 ± 0.7 |
+| Llama-70B → 8B | AIME'24 | 21.5 ± 1.1 | 25.3 ± 1.5 | 18.8 ± 1.3 | **26.0 ± 1.4** | 21.0 ± 1.5 |
+| Llama-70B → 8B | AIME'25 | 4.9 ± 0.9 | 7.5 ± 1.1 | 10.0 ± 1.2 | **11.5 ± 1.1** | 10.9 ± 1.4 |
+| Qwen2.5-14B → 1.5B | MATH-500 | 55.1 ± 0.9 | 54.9 ± 0.9 | 54.0 ± 0.9 | **56.2 ± 1.2** | 55.8 ± 0.9 |
+| Qwen2.5-14B → 1.5B | AIME'24 | 2.4 ± 0.7 | 3.3 ± 1.4 | 4.6 ± 1.3 | 3.8 ± 1.2 | **5.0 ± 1.3** |
+| Qwen2.5-14B → 1.5B | AIME'25 | 2.1 ± 0.9 | 1.0 ± 0.5 | 1.0 ± 0.6 | 1.5 ± 0.7 | **1.8 ± 0.6** |
+
+Generalizes beyond math: on **DeepPlanning** agentic planning (Qwen3-1.7B
+student, Avg@16), training on only 20% of overconfident (Q3) tokens surpasses
+full-token OPD for both a 14B teacher (12.6% vs. 11.7%) and a 32B teacher
+(13.6% vs. 12.8%).
+
+```bibtex
+@article{xu2026tip,
+  title   = {TIP: Token Importance in On-Policy Distillation},
+  author  = {Xu, Yuanda and Sang, Hejian and Zhou, Zhengze and He, Ran and Wang, Zhipeng and Geramifard, Alborz},
+  journal = {arXiv preprint arXiv:2604.14084},
+  year    = {2026}
+}
+```
+
+### PACED: Distillation and On-Policy Self-Distillation at the Frontier of Student Competence
+
+[arXiv:2603.11178](https://arxiv.org/abs/2603.11178) · [PDF](https://arxiv.org/pdf/2603.11178)
+— Yuanda Xu\*, Hejian Sang\*, Zhengze Zhou\*, Ran He\*, Zhipeng Wang
+
+Standard distillation treats every training problem equally, wasting compute
+on problems the student has already mastered or still cannot solve. PACED
+weights each problem by `w(p) = p(1-p)` (student empirical pass rate `p`),
+concentrating gradient signal-to-noise at the frontier of student competence.
+
+**Distillation track** (Qwen3-8B-GRPO → Qwen3-1.7B, forward-KL family, 8-sample mean accuracy %):
+
+| Method | MATH-500 | AIME 2024 | AIME 2025 |
+|---|---:|---:|---:|
+| Base | 69.4 ± 0.4 | 11.5 ± 0.9 | 7.6 ± 0.7 |
+| Forward KL (unweighted) | 76.8 ± 0.3 | 21.2 ± 1.3 | 17.0 ± 0.9 |
+| Hard Filter Forward KL | 78.5 ± 0.6 | 23.7 ± 0.9 | 18.8 ± 0.6 |
+| AKL | 77.6 ± 0.4 | 23.9 ± 1.2 | 19.1 ± 0.8 |
+| **PACED Forward KL** | **79.4 ± 0.5** | **25.1 ± 1.0** | **20.6 ± 0.7** |
+
+**Self-distillation track** (Qwen2.5-Math-7B-Instruct, reverse-KL family, 8-sample mean accuracy %):
+
+| Method | MATH-500 | AIME 2024 | AIME 2025 |
+|---|---:|---:|---:|
+| Base | 83.9 ± 0.6 | 19.6 ± 1.0 | 11.5 ± 0.7 |
+| Reverse KL (unweighted) | 88.9 ± 0.5 | 25.3 ± 1.2 | 16.9 ± 1.1 |
+| Hard Filter Reverse KL | 92.0 ± 0.5 | 28.9 ± 1.3 | 22.0 ± 0.9 |
+| AKL | 91.4 ± 0.5 | 28.2 ± 0.8 | 21.5 ± 0.6 |
+| **PACED Reverse KL** | **93.7 ± 0.6** | **31.6 ± 1.1** | **25.1 ± 0.7** |
+
+A two-stage forward-then-reverse KL schedule performs best overall, and PACED
+retains MMLU/forgetting on par with the best hard-filtering baseline (Tables
+4–5 of the paper) while improving reasoning accuracy.
+
+```bibtex
+@article{xu2026paced,
+  title   = {PACED: Distillation and On-Policy Self-Distillation at the Frontier of Student Competence},
+  author  = {Xu, Yuanda and Sang, Hejian and Zhou, Zhengze and He, Ran and Wang, Zhipeng},
+  journal = {arXiv preprint arXiv:2603.11178},
+  year    = {2026}
+}
+```
+
+### Beyond GRPO and On-Policy Distillation: An Empirical Sparse-to-Dense Reward Principle for LLM Post-Training
+
+[arXiv:2605.12483](https://arxiv.org/abs/2605.12483) · [PDF](https://arxiv.org/pdf/2605.12483)
+— Hejian Sang\*, Yuanda Xu\*, Zhengze Zhou\*, Ran He\*, Zhipeng Wang, Alborz Geramifard
+
+When labeled verifiable data is the binding constraint, scarce sparse-reward
+RL is most useful upstream on a strong teacher; dense token-level distillation
+is what compresses that behavior back into a small deployment model. The
+paper formalizes this as a three-stage workflow — teacher RL, forward-KL
+warmup, on-policy distillation (OPD), then optional post-bridge student RL —
+and shows every stage is load-bearing.
+
+**Direct-GRPO baseline** across Qwen3 scales (avg@16, %) — the 1.7B row is the
+deployment-student endpoint the workflow must beat:
+
+| Model | MATH | AIME 2024 | AIME 2025 |
+|---|---:|---:|---:|
+| Qwen3-1.7B (cold GRPO) | 75.9 ± 0.9 | 19.8 ± 1.4 | 17.1 ± 0.9 |
+| Qwen3-8B | 88.4 ± 0.8 | 47.7 ± 1.5 | 36.7 ± 1.2 |
+| Qwen3-14B | 89.5 ± 0.7 | 47.1 ± 1.2 | 39.0 ± 0.9 |
+
+**Full workflow vs. cold GRPO**, Qwen3-1.7B deployment student (MATH, avg@16, %):
+
+| Teacher | Full workflow (bridge + Stage 3) | Cold GRPO (no bridge) | Δ |
+|---|---:|---:|---:|
+| RL'd Qwen3-8B | 78.5 ± 0.9 | 75.9 ± 0.9 | +2.6 |
+| RL'd Qwen3-14B | 78.7 ± 1.1 | 75.9 ± 0.9 | +2.8 |
+
+Every stage matters: removing teacher-side RL collapses the student to
+71.5–72.8% MATH (below cold GRPO); removing the forward-KL warmup costs
+1.5–1.7 points; and Stage-3 student RL after the bridge adds +2.4 to +3.1
+points that a replay control (same number of updates, no new labels) cannot
+reproduce (≤0.3 points). The teacher-RL + distillation setup outperforms
+directly training small models with GRPO/RL.
+
+```bibtex
+@article{sang2026sparsetodense,
+  title   = {Beyond GRPO and On-Policy Distillation: An Empirical Sparse-to-Dense Reward Principle for Language-Model Post-Training},
+  author  = {Sang, Hejian and Xu, Yuanda and Zhou, Zhengze and He, Ran and Wang, Zhipeng and Geramifard, Alborz},
+  journal = {arXiv preprint arXiv:2605.12483},
+  year    = {2026}
+}
+```
 
 ## Related Repositories
 
-- [`thunlp/OPD`](https://github.com/thunlp/OPD) — the base on-policy-distillation
-  framework that TIP extends.
 - [`HJSang/LatentPress`](https://github.com/HJSang/LatentPress) —
   **LatentPress: Context Compression Beyond Text and Vision**
   ([arXiv:2609.01507](https://arxiv.org/abs/2609.01507)), a separate research
@@ -31,10 +152,7 @@ This repository is related to the following papers:
   continuous soft tokens that a frozen decoder reads directly, rather than
   distilling behavior between a teacher and a student — an orthogonal
   compression axis (representation of context) to OPD's compression axis
-  (which tokens carry learning signal during distillation). Also present, as
-  a legacy snapshot, on this repo's
-  [`latentpress-context-compression`](https://github.com/HJSang/OPSD_OnPolicyDistillation/tree/latentpress-context-compression)
-  branch.
+  (which tokens carry learning signal during distillation).
 
 ## OPD: On-Policy Distillation with Separate Teacher
 
@@ -256,3 +374,9 @@ Eval variables:
 - `VAL_TOP_P`
 - `VAL_TOP_K`
 - `VAL_N`
+
+## Acknowledgements
+
+Training builds on [`verl`](https://github.com/volcengine/verl) /
+HybridFlow (Sheng et al., 2025) for distributed RL and rollout
+infrastructure.
