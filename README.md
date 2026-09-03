@@ -24,15 +24,18 @@ This repository is related to the following papers:
 
 - [`thunlp/OPD`](https://github.com/thunlp/OPD) — the base on-policy-distillation
   framework that TIP extends.
-- [`xuyd16ai/context_softtoken_compress`](https://github.com/xuyd16ai/context_softtoken_compress)
-  ([`latentpress-context-compression` branch](https://github.com/HJSang/OPSD_OnPolicyDistillation/tree/latentpress-context-compression)
-  of this repo) — **LatentPress: Context Compression Beyond Text and Vision**
+- [`HJSang/LatentPress`](https://github.com/HJSang/LatentPress) —
+  **LatentPress: Context Compression Beyond Text and Vision**
   ([arXiv:2609.01507](https://arxiv.org/abs/2609.01507)), a separate research
   line by one of this repo's authors. LatentPress writes long context into
   continuous soft tokens that a frozen decoder reads directly, rather than
   distilling behavior between a teacher and a student — an orthogonal
   compression axis (representation of context) to OPD's compression axis
-  (which tokens carry learning signal during distillation).
+  (which tokens carry learning signal during distillation). Also mirrored at
+  [`xuyd16ai/context_softtoken_compress`](https://github.com/xuyd16ai/context_softtoken_compress)
+  (the arXiv PDF's original code link) and, as a legacy snapshot, on this
+  repo's [`latentpress-context-compression`](https://github.com/HJSang/OPSD_OnPolicyDistillation/tree/latentpress-context-compression)
+  branch.
 
 ## OPD: On-Policy Distillation with Separate Teacher
 
